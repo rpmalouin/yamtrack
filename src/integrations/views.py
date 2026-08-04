@@ -1,5 +1,6 @@
 """Contains views for importing and exporting media data from various sources."""
 
+import base64
 import json
 import logging
 import secrets
@@ -359,8 +360,9 @@ def import_yamtrack(request):
         return redirect("import_data")
 
     mode = request.POST["mode"]
+    file_content = base64.b64encode(file.read()).decode("ascii")
     tasks.import_yamtrack.delay(
-        file=request.FILES["yamtrack_csv"],
+        file_content=file_content,
         user_id=request.user.id,
         mode=mode,
     )
@@ -381,8 +383,9 @@ def import_hltb(request):
         return redirect("import_data")
 
     mode = request.POST["mode"]
+    file_content = base64.b64encode(file.read()).decode("ascii")
     tasks.import_hltb.delay(
-        file=request.FILES["hltb_csv"],
+        file_content=file_content,
         user_id=request.user.id,
         mode=mode,
     )
@@ -420,6 +423,7 @@ def import_steam(request):
     return redirect("import_data")
 
 
+@require_POST
 def import_imdb(request):
     """View for importing data from IMDB."""
     file = request.FILES.get("imdb_csv")
@@ -429,8 +433,9 @@ def import_imdb(request):
         return redirect("import_data")
 
     mode = request.POST["mode"]
+    file_content = base64.b64encode(file.read()).decode("ascii")
     tasks.import_imdb.delay(
-        file=request.FILES["imdb_csv"],
+        file_content=file_content,
         user_id=request.user.id,
         mode=mode,
     )
@@ -451,8 +456,9 @@ def import_goodreads(request):
         return redirect("import_data")
 
     mode = request.POST["mode"]
+    file_content = base64.b64encode(file.read()).decode("ascii")
     tasks.import_goodreads.delay(
-        file=request.FILES["goodreads_csv"],
+        file_content=file_content,
         user_id=request.user.id,
         mode=mode,
     )

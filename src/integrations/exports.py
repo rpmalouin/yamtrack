@@ -18,6 +18,20 @@ class Echo:
         return value
 
 
+# Leading characters that spreadsheet applications interpret as formulas/commands.
+_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def sanitize_cell(value):
+    """Neutralize cells that could be interpreted as formulas by a spreadsheet."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    if stripped.startswith(_FORMULA_PREFIXES):
+        return f"'{value}"
+    return value
+
+
 def generate_rows(user):
     """Generate CSV rows."""
     pseudo_buffer = Echo()
@@ -66,9 +80,10 @@ def generate_rows(user):
         logger.debug("Streaming %ss to CSV", media_type)
 
         for media in queryset.iterator(chunk_size=500):
-            row = [getattr(media.item, field, "") for field in fields["item"]] + [
-                getattr(media, field, "") for field in fields["track"]
-            ]
+            row = [
+                sanitize_cell(getattr(media.item, field, ""))
+                for field in fields["item"]
+            ] + [sanitize_cell(getattr(media, field, "")) for field in fields["track"]]
 
             if media_type == MediaTypes.GAME.value:
                 # calculate index of progress field

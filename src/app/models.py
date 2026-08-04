@@ -211,9 +211,13 @@ class Item(CalendarTriggerMixin, models.Model):
             items_to_process = [self]
 
         if delay:
-            events.tasks.reload_calendar.delay(items_to_process=items_to_process)
+            events.tasks.reload_calendar.delay(
+                item_ids=[item.id for item in items_to_process],
+            )
         else:
-            events.tasks.reload_calendar(items_to_process=items_to_process)
+            events.tasks.reload_calendar(
+                item_ids=[item.id for item in items_to_process],
+            )
 
 
 class MediaManager(models.Manager):

@@ -29,7 +29,11 @@ urlpatterns = [
                 checks=[
                     "health_check.Cache",
                     "health_check.Database",
-                    "health_check.contrib.celery.Ping",
+                    # NOTE: the Celery Ping health check (remote control) is
+                    # intentionally omitted - it is unreliable over the shared
+                    # Redis broker and frequently reports false "workers
+                    # unavailable". Celery is supervised by supervisord inside
+                    # the container instead.
                     (
                         "health_check.contrib.redis.Redis",
                         {

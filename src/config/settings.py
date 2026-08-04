@@ -5,7 +5,7 @@ import sys
 import warnings
 import zoneinfo
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse, urlsplit
 
 from celery.schedules import crontab
 from decouple import (
@@ -73,10 +73,22 @@ def secret(key, default=undefined, **kwargs):
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config(
-    "SECRET",
-    default=secret("SECRET_FILE", default="ifx7bdUWo5EwC2NQNihjRjOrW00Cdv5Y"),
-)
+SECRET_KEY = config("SECRET", default=None)
+if not SECRET_KEY:
+    SECRET_KEY = secret("SECRET_FILE", default="")
+
+# Fail closed only for real server processes (gunicorn/celery), where a weak
+# secret would be exploitable. Management commands (collectstatic, migrate,
+# shell, check) and dev servers (runserver/test) may fall back to a dev key so
+# they work during image builds and local development without a configured SECRET.
+if not SECRET_KEY:
+    if any(cmd in sys.argv for cmd in ("gunicorn", "celery", "supervisord")):
+        msg = (
+            "The SECRET (or SECRET_FILE) environment variable must be set in "
+            "production. Refusing to start with a hardcoded default secret key."
+        )
+        raise ImproperlyConfigured(msg)
+    SECRET_KEY = "dev-insecure-secret-key-not-for-production"  # noqa: S105
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -190,7 +202,40 @@ WSGI_APPLICATION = "config.wsgi.application"
 # create db folder if it doesn't exist
 Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
 
-if config("DB_HOST", default=None):
+
+def _database_from_url(url):
+    """Build a Django DATABASES entry from a postgres:// DATABASE_URL."""
+    parts = urlsplit(url)
+    name = parts.path.strip("/") or "yamtrack"
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "HOST": parts.hostname,
+        "NAME": name,
+        "USER": unquote(parts.username) if parts.username else "",
+        "PASSWORD": unquote(parts.password) if parts.password else "",
+        "PORT": parts.port,
+        "OPTIONS": {
+            "pool": True,
+        },
+    }
+
+
+def _apply_db_ssl_options(database):
+    """Apply optional SSL settings to a postgres database config."""
+    sslmode = config("DB_SSL_MODE", default=None)
+    if sslmode:
+        database["OPTIONS"]["sslmode"] = sslmode
+
+    sslcertmode = config("DB_SSL_CERT_MODE", default=None)
+    if sslcertmode:
+        database["OPTIONS"]["sslcertmode"] = sslcertmode
+
+
+DATABASE_URL = config("DATABASE_URL", default="")
+if DATABASE_URL:
+    DATABASES = {"default": _database_from_url(DATABASE_URL)}
+    _apply_db_ssl_options(DATABASES["default"])
+elif config("DB_HOST", default=None):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -204,15 +249,7 @@ if config("DB_HOST", default=None):
             },
         },
     }
-
-    sslmode = config("DB_SSL_MODE", default=None)
-    if sslmode:
-        DATABASES["default"]["OPTIONS"]["sslmode"] = sslmode
-
-    sslcertmode = config("DB_SSL_CERT_MODE", default=None)
-    if sslcertmode:
-        DATABASES["default"]["OPTIONS"]["sslcertmode"] = sslcertmode
-
+    _apply_db_ssl_options(DATABASES["default"])
 else:
     DATABASES = {
         "default": {
@@ -361,7 +398,7 @@ TMDB_API = config(
     "TMDB_API",
     default=secret(
         "TMDB_API_FILE",
-        "61572be02f0a068658828f6396aacf60",
+        "",
     ),
 )
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
@@ -371,7 +408,7 @@ TVDB_API = config(
     "TVDB_API",
     default=secret(
         "TVDB_API_FILE",
-        "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
+        "",
     ),
 )
 
@@ -379,7 +416,7 @@ MAL_API = config(
     "MAL_API",
     default=secret(
         "MAL_API_FILE",
-        "25b5581dafd15b3e7d583bb79e9a1691",
+        "",
     ),
 )
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
@@ -390,14 +427,14 @@ IGDB_ID = config(
     "IGDB_ID",
     default=secret(
         "IGDB_ID_FILE",
-        "8wqmm7x1n2xxtnz94lb8mthadhtgrt",
+        "",
     ),
 )
 IGDB_SECRET = config(
     "IGDB_SECRET",
     default=secret(
         "IGDB_SECRET_FILE",
-        "ovbq0hwscv58hu46yxn50hovt4j8kj",
+        "",
     ),
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
@@ -407,7 +444,7 @@ BGG_API_TOKEN = config(
     "BGG_API_TOKEN",
     default=secret(
         "BGG_API_TOKEN_FILE",
-        "92f43ab1-d1d5-4e18-8b82-d1f56dc12927",
+        "",
     ),
 )
 
@@ -423,21 +460,11 @@ HARDCOVER_API = config(
     "HARDCOVER_API",
     default=secret(
         "HARDCOVER_API_FILE",
-        "Bearer "
-        "eyJhbGciOiJIUzI1NiJ9."
-        "eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6IjMzNDhiNGE1"
-        "LWIzYTUtNDAxMy1hODU3LWQ4NGI1OTdmYmI3ZCIsImFwcGxpY2F0aW9uSWQi"
-        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJ"
-        "biI6dHJ1ZSwiaWF0IjoxNzc4ODQzMTE1LCJleHAiOjE4MTAzNzkxMTUsImh0dHBz"
-        "Oi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xl"
-        "cyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4"
-        "LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiIzNDk1MSJ9"
-        "LCJ1c2VyIjp7ImlkIjozNDk1MX19."
-        "j4MVAEi_-w2N7DuiMgAxkfVc6RuKd88AHrOyzF5xLyU",
+        "",
     ),
 )
 HARDCOVER_API = HARDCOVER_API.strip()
-if not HARDCOVER_API.startswith("Bearer "):
+if HARDCOVER_API and not HARDCOVER_API.startswith("Bearer "):
     msg = "HARDCOVER_API must start with 'Bearer '."
     raise ImproperlyConfigured(msg)
 
@@ -445,7 +472,7 @@ COMICVINE_API = config(
     "COMICVINE_API",
     default=secret(
         "COMICVINE_API_FILE",
-        "cdab0706269e4bca03a096fbc39920dadf7e4992",
+        "",
     ),
 )
 
@@ -453,7 +480,7 @@ TRAKT_API = config(
     "TRAKT_API",
     default=secret(
         "TRAKT_API_FILE",
-        "b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
+        "",
     ),
 )
 
@@ -485,14 +512,14 @@ SIMKL_ID = config(
     "SIMKL_ID",
     default=secret(
         "SIMKL_ID_FILE",
-        "a973e57e85d94068315d5ac29669d85da8abc0fb7aff1d22e00e04bdf1882578",
+        "",
     ),
 )
 SIMKL_SECRET = config(
     "SIMKL_SECRET",
     default=secret(
         "SIMKL_SECRET_FILE",
-        "1b548a88ac7884a757cc58a552842913a9337f3cab3a4905836c6dc305dda316",
+        "",
     ),
 )
 
@@ -501,7 +528,7 @@ TESTING = False
 
 HEALTHCHECK_CELERY_PING_TIMEOUT = config(
     "HEALTHCHECK_CELERY_PING_TIMEOUT",
-    default=1,
+    default=5,
     cast=int,
 )
 
@@ -552,9 +579,14 @@ CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-serializer
-CELERY_TASK_SERIALIZER = "pickle"
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-accept_content
-CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+# Keep pickle accepted for Celery's internal control/pidbox channel (worker
+# control + health-check ping rely on it); tasks are still sent as JSON. The
+# broker is network-isolated in the deployment, so err on the side of the
+# working control channel.
+CELERY_ACCEPT_CONTENT = ["json", "application/x-python-serialize"]
 
 
 DAILY_DIGEST_HOUR = config(
@@ -629,7 +661,22 @@ if BASE_URL:
         ACCOUNT_LOGOUT_REDIRECT_URL = urljoin(BASE_URL, ACCOUNT_LOGOUT_REDIRECT_URL)
     SESSION_COOKIE_PATH = BASE_URL + "/"
 
-SOCIALACCOUNT_LOGIN_ON_GET = True
+# Secure cookie / transport security settings.
+# These default to secure when not running in development (DEBUG=False), but can
+# be overridden via environment variables for deployments that terminate TLS
+# elsewhere or run over plain HTTP.
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SESSION_COOKIE_SAMESITE = config("SESSION_COOKIE_SAMESITE", default="Lax")
+CSRF_COOKIE_SAMESITE = config("CSRF_COOKIE_SAMESITE", default="Lax")
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+
+SOCIALACCOUNT_LOGIN_ON_GET = config(
+    "SOCIALACCOUNT_LOGIN_ON_GET",
+    default=False,
+    cast=bool,
+)
 
 SOCIAL_PROVIDERS = config("SOCIAL_PROVIDERS", default="", cast=Csv())
 INSTALLED_APPS += SOCIAL_PROVIDERS
@@ -647,7 +694,7 @@ SOCIALACCOUNT_ONLY = config("SOCIALACCOUNT_ONLY", default=False, cast=bool)
 if SOCIALACCOUNT_ONLY:
     ACCOUNT_EMAIL_VERIFICATION = "none"
 
-REGISTRATION = config("REGISTRATION", default=True, cast=bool)
+REGISTRATION = config("REGISTRATION", default=False, cast=bool)
 if not REGISTRATION:
     ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"
 

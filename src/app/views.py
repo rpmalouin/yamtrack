@@ -14,6 +14,7 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonRespo
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import config, helpers, history_processor
@@ -445,10 +446,13 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
     if source == Sources.MANUAL.value:
         msg = "Manual items cannot be synced."
         messages.error(request, msg)
+        next_url = request.POST.get("next", "/")
+        if not url_has_allowed_host_and_scheme(next_url, None):
+            next_url = "/"
         return HttpResponse(
             msg,
             status=400,
-            headers={"HX-Redirect": request.POST.get("next", "/")},
+            headers={"HX-Redirect": next_url},
         )
 
     cache_key = f"{source}_{media_type}_{media_id}"
@@ -539,10 +543,13 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
         messages.success(request, msg)
 
     if request.headers.get("HX-Request"):
+        next_url = request.POST.get("next", "/")
+        if not url_has_allowed_host_and_scheme(next_url, None):
+            next_url = "/"
         return HttpResponse(
             status=204,
             headers={
-                "HX-Redirect": request.POST["next"],
+                "HX-Redirect": next_url,
             },
         )
     return helpers.redirect_back(request)
@@ -918,6 +925,10 @@ def history_modal(
 @require_http_methods(["DELETE"])
 def delete_history_record(request, media_type, history_id):
     """Delete a specific history record."""
+    if media_type.lower() not in {mt.lower() for mt in MediaTypes.values}:
+        logger.warning("Unknown media type for history deletion: %s", media_type)
+        return HttpResponse("Unknown media type", status=404)
+
     try:
         historical_model = apps.get_model(
             app_label="app",

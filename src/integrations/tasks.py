@@ -1,3 +1,5 @@
+import base64
+import io
 import logging
 
 from celery import shared_task
@@ -126,15 +128,25 @@ def import_kitsu(username, user_id, mode):
 
 
 @shared_task(name="Import from Yamtrack")
-def import_yamtrack(file, user_id, mode):
+def import_yamtrack(file_content, user_id, mode):
     """Celery task for importing media data from Yamtrack."""
-    return import_media(yamtrack.importer, file, user_id, mode)
+    return import_media(
+        yamtrack.importer,
+        io.BytesIO(base64.b64decode(file_content)),
+        user_id,
+        mode,
+    )
 
 
 @shared_task(name="Import from HowLongToBeat")
-def import_hltb(file, user_id, mode):
+def import_hltb(file_content, user_id, mode):
     """Celery task for importing media data from HowLongToBeat."""
-    return import_media(hltb.importer, file, user_id, mode)
+    return import_media(
+        hltb.importer,
+        io.BytesIO(base64.b64decode(file_content)),
+        user_id,
+        mode,
+    )
 
 
 @shared_task(name="Import from Steam")
@@ -144,12 +156,22 @@ def import_steam(username, user_id, mode):
 
 
 @shared_task(name="Import from IMDB")
-def import_imdb(file, user_id, mode):
+def import_imdb(file_content, user_id, mode):
     """Celery task for importing media data from IMDB."""
-    return import_media(imdb.importer, file, user_id, mode)
+    return import_media(
+        imdb.importer,
+        io.BytesIO(base64.b64decode(file_content)),
+        user_id,
+        mode,
+    )
 
 
 @shared_task(name="Import from GoodReads")
-def import_goodreads(file, user_id, mode):
+def import_goodreads(file_content, user_id, mode):
     """Celery task for importing media data from GoodReads."""
-    return import_media(goodreads.importer, file, user_id, mode)
+    return import_media(
+        goodreads.importer,
+        io.BytesIO(base64.b64decode(file_content)),
+        user_id,
+        mode,
+    )

@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
 
+from app.apprise_guard import notification_url_is_safe
 from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
 from events.models import INACTIVE_TRACKING_STATUSES, Event
@@ -464,6 +465,13 @@ def send_user_notification(user, urls, title, body):
     """
     apobj = apprise.Apprise()
     for url in urls:
+        if not notification_url_is_safe(url):
+            logger.warning(
+                "Skipping unsafe notification URL for %s: %s",
+                user.username,
+                url,
+            )
+            continue
         apobj.add(url)
 
     try:

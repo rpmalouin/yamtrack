@@ -6,6 +6,8 @@ from django.contrib.auth.forms import (
 )
 from django.core.exceptions import ValidationError
 
+from app.apprise_guard import notification_url_is_safe
+
 from .models import User
 
 
@@ -114,6 +116,11 @@ class NotificationSettingsForm(forms.ModelForm):
         for url in urls:
             if not apobj.add(url):
                 message = f"'{url}' is not a valid Apprise URL."
+                raise ValidationError(message)
+            if not notification_url_is_safe(url):
+                message = (
+                    f"'{url}' targets a private or internal address and is not allowed."
+                )
                 raise ValidationError(message)
 
         return notification_urls

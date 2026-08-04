@@ -1,5 +1,6 @@
 import logging
 import time
+from urllib.parse import urlsplit
 
 import requests
 from defusedxml import ElementTree
@@ -156,6 +157,11 @@ def api_request(
     Returns:
         Parsed JSON dict or ElementTree for XML
     """
+    parsed_url = urlsplit(url)
+    if parsed_url.scheme.lower() not in ("http", "https"):
+        msg = f"Unsupported URL scheme in api_request: {parsed_url.scheme!r}"
+        raise ProviderAPIError(provider, ValueError(msg))
+
     try:
         request_kwargs = {
             "url": url,

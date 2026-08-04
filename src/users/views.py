@@ -12,6 +12,7 @@ from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
+from app.apprise_guard import notification_url_is_safe
 from app.models import Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
@@ -194,7 +195,14 @@ def test_notification(request):
             return redirect("notifications")
 
         for url in notification_urls:
+            if not notification_url_is_safe(url):
+                logger.warning("Skipping unsafe notification URL: %s", url)
+                continue
             apobj.add(url)
+
+        if not apobj.urls:
+            messages.error(request, "No safe notification URLs configured.")
+            return redirect("notifications")
 
         # Send test notification
         result = apobj.notify(
@@ -392,7 +400,11 @@ def update_jellyfin_webhook_events(request):
 
 @require_POST
 def clear_search_cache(request):
-    """Clear all cached search entries."""
+    """Clear all cached search entries (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "Only staff members can clear the search cache.")
+        return redirect("advanced")
+
     deleted = cache.delete_pattern("search_*")
 
     messages.success(
