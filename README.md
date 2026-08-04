@@ -12,6 +12,11 @@ Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, vide
 
 <!-- --8<-- [end:docs-index-intro] -->
 
+> **Fork / attribution**
+> This repository is a fork of and derivative of **[FuzzyGrim/Yamtrack](https://github.com/FuzzyGrim/Yamtrack)** by **FuzzyGrim**.
+> The original project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** and this fork is distributed under the **same license**. The full license text is in [`LICENSE`](LICENSE). All upstream copyright and license notices are retained. See the license for your rights and obligations when using, modifying, or redistributing this software.
+
+
 ## 📚 Documentation
 
 The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/).
