@@ -12,6 +12,32 @@ Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, vide
 > This repository is a fork of and derivative of **[FuzzyGrim/Yamtrack](https://github.com/FuzzyGrim/Yamtrack)** by **FuzzyGrim**.
 > The original project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** and this fork is distributed under the **same license**. The full license text is in [`LICENSE`](LICENSE). All upstream copyright and license notices are retained. See the license for your rights and obligations when using, modifying, or redistributing this software.
 
+## 🔒 Changes vs. upstream
+
+This fork focuses on **hardening the default configuration** of the upstream
+Yamtrack. The feature set is otherwise the same. Notable differences:
+
+- **No hardcoded secrets.** All credentials (Django `SECRET`, TMDB/TVDB/MAL/IGDB/
+  BGG/Hardcover/ComicVine/Trakt/Simkl/AniList API keys) must now come from
+  environment variables or secret files — the baked-in defaults were removed.
+  `SECRET` **fails closed** for server processes (gunicorn/celery), so a
+  production start without one is refused instead of silently using a weak key.
+- **Celery uses JSON serialization.** Tasks are sent as JSON with JSON-safe
+  arguments (file content/IDs instead of pickled objects). `application/x-python-serialize`
+  remains in `accept_content` for Celery's internal control channel.
+- **SSRF guard for notifications.** Apprise notification URLs are validated
+  against private/loopback/link-local/cloud-metadata addresses, enforced on save
+  and on send, so a notification URL can't be pointed at internal services.
+- **Secure transport defaults** (env-overridable): `SESSION_COOKIE_SECURE` /
+  `CSRF_COOKIE_SECURE` default to on in production, plus `SameSite`, HSTS and
+  SSL-redirect settings.
+- **Smaller fixes:** CSV export formula-injection sanitization, open-redirect
+  fix on `HX-Redirect`, `clear_search_cache` restricted to staff, `@require_POST`
+  on CSV imports, media-type validation on history deletion, and `api_request`
+  restricted to `http(s)` schemes.
+- **Safer defaults:** new-user `REGISTRATION` defaults to `false` and
+  `SOCIALACCOUNT_LOGIN_ON_GET` defaults to `false` (login CSRF protection).
+- Added a **`.env.example`** configuration template.
 
 ## 📚 Documentation
 
