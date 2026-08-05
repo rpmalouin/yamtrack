@@ -13,6 +13,7 @@ from app.providers import (
     openlibrary,
     tmdb,
 )
+from app.tests.providers._skip import requires
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
@@ -20,6 +21,7 @@ mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 class Search(TestCase):
     """Test the external API calls for media search."""
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime(self):
         """Test the search method for anime.
 
@@ -32,6 +34,7 @@ class Search(TestCase):
         for anime in response["results"]:
             self.assertTrue(all(key in anime for key in required_keys))
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime_not_found(self):
         """Test the search method for anime with no results."""
         response = mal.search(MediaTypes.ANIME.value, "q", 1)
@@ -55,6 +58,7 @@ class Search(TestCase):
 
         self.assertEqual(response["results"], [])
 
+    @requires("TMDB_API", "TMDB")
     def test_tv(self):
         """Test the search method for TV shows.
 
@@ -66,6 +70,11 @@ class Search(TestCase):
         for tv in response["results"]:
             self.assertTrue(all(key in tv for key in required_keys))
 
+    @requires(
+        "IGDB",
+        "IGDB",
+        check=lambda s: bool(s.IGDB_ID and s.IGDB_SECRET),
+    )
     def test_games(self):
         """Test the search method for games.
 
@@ -88,6 +97,11 @@ class Search(TestCase):
         for book in response["results"]:
             self.assertTrue(all(key in book for key in required_keys))
 
+    @requires(
+        "IGDB",
+        "IGDB",
+        check=lambda s: bool(s.IGDB_ID and s.IGDB_SECRET),
+    )
     def test_comics(self):
         """Test the search method for comics.
 
@@ -99,6 +113,7 @@ class Search(TestCase):
         for comic in response["results"]:
             self.assertTrue(all(key in comic for key in required_keys))
 
+    @requires("HARDCOVER_API", "Hardcover")
     def test_hardcover(self):
         """Test the search method for books from Hardcover.
 
@@ -112,6 +127,7 @@ class Search(TestCase):
         for book in response["results"]:
             self.assertTrue(all(key in book for key in required_keys))
 
+    @requires("HARDCOVER_API", "Hardcover")
     def test_hardcover_not_found(self):
         """Test the search method for books from Hardcover with no results."""
         response = hardcover.search("xjkqzptmvnsieurytowahdbfglc", 1)

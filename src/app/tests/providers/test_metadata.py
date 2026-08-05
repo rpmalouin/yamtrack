@@ -19,6 +19,7 @@ from app.providers import (
     services,
     tmdb,
 )
+from app.tests.providers._skip import requires
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
@@ -26,6 +27,7 @@ mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 class Metadata(TestCase):
     """Test the external API calls for media details."""
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime(self):
         """Test the metadata method for anime."""
         response = mal.anime("1")
@@ -50,6 +52,7 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["episodes"], None)
         self.assertEqual(response["details"]["runtime"], None)
 
+    @requires("MAL_API", "MyAnimeList")
     def test_manga(self):
         """Test the metadata method for manga."""
         response = mal.manga("1")
@@ -65,6 +68,7 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["year"], "1994")
         self.assertEqual(response["details"]["format"], "Manga")
 
+    @requires("TMDB_API", "TMDB")
     def test_tv(self):
         """Test the metadata method for TV shows."""
         response = tmdb.tv("1396")
@@ -399,6 +403,7 @@ class Metadata(TestCase):
         next_episode = tmdb.find_next_episode(5, episodes_metadata)
         self.assertIsNone(next_episode)
 
+    @requires("TMDB_API", "TMDB")
     def test_movie(self):
         """Test the metadata method for movies."""
         response = tmdb.movie("10494")
@@ -425,6 +430,11 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["country"], None)
         self.assertEqual(response["details"]["languages"], None)
 
+    @requires(
+        "IGDB",
+        "IGDB",
+        check=lambda s: bool(s.IGDB_ID and s.IGDB_SECRET),
+    )
     def test_games(self):
         """Test the metadata method for games."""
         response = igdb.game("1942")
@@ -442,12 +452,22 @@ class Metadata(TestCase):
             ["hastily", "normally", "completely"],
         )
 
+    @requires(
+        "IGDB",
+        "IGDB",
+        check=lambda s: bool(s.IGDB_ID and s.IGDB_SECRET),
+    )
     def test_external_game_steam(self):
         """Test the external_game method for Steam games."""
         igdb_game_id = igdb.external_game("292030", igdb.ExternalGameSource.STEAM)
 
         self.assertEqual(igdb_game_id, 1942)
 
+    @requires(
+        "IGDB",
+        "IGDB",
+        check=lambda s: bool(s.IGDB_ID and s.IGDB_SECRET),
+    )
     def test_external_game_not_found(self):
         """Test the external_game method with non-existent Steam ID."""
         igdb_game_id = igdb.external_game("999999999", igdb.ExternalGameSource.STEAM)
@@ -465,11 +485,13 @@ class Metadata(TestCase):
         response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
         self.assertEqual(response, "2017-10-01")
 
+    @requires("COMICVINE_API", "Comic Vine")
     def test_comic(self):
         """Test the metadata method for comics."""
         response = comicvine.comic("155969")
         self.assertEqual(response["title"], "Ultimate Spider-Man")
 
+    @requires("HARDCOVER_API", "Hardcover")
     def test_hardcover_book(self):
         """Test the metadata method for books from Hardcover."""
         response = hardcover.book("377193")
@@ -480,6 +502,7 @@ class Metadata(TestCase):
         self.assertIn("Classics", response["genres"])
         self.assertAlmostEqual(response["score"], 7.4, delta=0.1)
 
+    @requires("HARDCOVER_API", "Hardcover")
     def test_hardcover_book_unknown(self):
         """Test the metadata method for books from Hardcover with minimal data."""
         response = hardcover.book("1265528")
