@@ -15,8 +15,12 @@ Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, vide
 ## 🔒 Changes vs. upstream
 
 This fork focuses on **hardening the default configuration** of the upstream
-Yamtrack. The feature set is otherwise the same. Notable differences:
+Yamtrack. Notable differences (beyond the smaller fixes below, the feature set is
+mostly the same):
 
+- **Home page `Completed` section.** Beyond upstream's *In Progress* and
+  *Planning*, the Home page now also shows a **Completed** section listing
+  finished movies and TV seasons (emerald accent, per-status icon/sort).
 - **No hardcoded secrets.** All credentials (Django `SECRET`, TMDB/TVDB/MAL/IGDB/
   BGG/Hardcover/ComicVine/Trakt/Simkl/AniList API keys) must now come from
   environment variables or secret files — the baked-in defaults were removed.

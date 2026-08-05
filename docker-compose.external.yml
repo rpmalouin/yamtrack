@@ -1,0 +1,65 @@
+# docker-compose.external.yml
+#
+# Compose for running Yamtrack against EXISTING external services (a shared
+# Redis and PostgreSQL) instead of the bundled ones bundled in the other
+# compose files (docker-compose.yml, docker-compose.postgres.yml).
+#
+# Nothing sensitive is committed: every value comes from the environment or a
+# local `.env` file. Copy `.env.example` to `.env`, fill in real values, and
+# set DATABASE_URL to point at your external database.
+#
+#   cp .env.example .env
+#   docker compose -f docker-compose.external.yml up -d --build
+#
+# External network: set EXTERNAL_NETWORK to the name of an existing Docker
+# network that already bridges the containers running Redis and PostgreSQL
+# (created with `docker network create appnet`, for example).
+
+services:
+  yamtrack:
+    container_name: yamtrack
+    build:
+      context: .
+    image: yamtrack:local
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      SECRET: ${SECRET}
+      TMDB_API: ${TMDB_API:-}
+      TMDB_API_READ_ACCESS_TOKEN: ${TMDB_API_READ_ACCESS_TOKEN:-}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      CSRF_COOKIE_SECURE: ${CSRF_COOKIE_SECURE:-false}
+      TZ: ${TZ:-UTC}
+
+    volumes:
+      - yamtrack_db:/yamtrack/db
+
+    ports:
+      - "${YAMTRACK_PORT:-8000}:8000"
+
+    networks:
+      - external
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:8000/health/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+networks:
+  external:
+    name: ${EXTERNAL_NETWORK:-appnet}
+    external: true
+
+volumes:
+  yamtrack_db:

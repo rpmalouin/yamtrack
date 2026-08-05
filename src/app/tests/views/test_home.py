@@ -218,6 +218,66 @@ class HomeViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_sort, "completion")
 
+    def test_home_view_completed_section(self):
+        """Test the home view includes a Completed section with movies and seasons."""
+        movie_item = Item.objects.create(
+            media_id="completed-movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Completed Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+            progress=1,
+        )
+
+        season_item = Item.objects.create(
+            media_id="completed-season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Completed Season",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        Season.objects.filter(pk=season.pk).update(status=Status.COMPLETED.value)
+        for i in range(1, 11):
+            episode_item = Item.objects.create(
+                media_id="completed-season",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
+                title="Completed Season",
+                image="http://example.com/image.jpg",
+                season_number=1,
+                episode_number=i,
+            )
+            Episode.objects.create(
+                item=episode_item,
+                related_season=season,
+                end_date=timezone.now() - timezone.timedelta(days=10),
+            )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+
+        sections_by_key = {
+            section["key"]: section for section in response.context["home_sections"]
+        }
+        self.assertIn(Status.COMPLETED.value, sections_by_key)
+
+        completed_section = sections_by_key[Status.COMPLETED.value]
+        self.assertEqual(completed_section["count"], 2)
+        self.assertIn(MediaTypes.MOVIE.value, completed_section["media_types"])
+        self.assertIn(MediaTypes.SEASON.value, completed_section["media_types"])
+
     def test_home_view_hides_unreleased_when_filter_enabled(self):
         """Test home view can hide unreleased media in existing sections."""
         response = self.client.get(reverse("home") + "?hide_unreleased=true")

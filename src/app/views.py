@@ -92,7 +92,11 @@ def home(request):
                 hide_unreleased=hide_unreleased,
             ),
         )
-        for section_key in (Status.IN_PROGRESS.value, Status.PLANNING.value)
+        for section_key in (
+            Status.IN_PROGRESS.value,
+            Status.PLANNING.value,
+            Status.COMPLETED.value,
+        )
     ]
 
     context = {
