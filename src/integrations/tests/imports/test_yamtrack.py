@@ -14,6 +14,7 @@ from app.models import (
     Movie,
     Season,
 )
+from app.tests.providers._skip import requires
 from integrations.imports import (
     yamtrack,
 )
@@ -69,6 +70,7 @@ class ImportYamtrack(TestCase):
             datetime(2024, 2, 9, 12, 0, 0, tzinfo=UTC),
         )
 
+    @requires("TMDB_API", "TMDB")
     def test_missing_metadata_handling(self):
         """Test _handle_missing_metadata method directly."""
         test_rows = [
@@ -163,6 +165,7 @@ class ImportYamtrackEpisodeHistoryDate(TestCase):
         )
 
 
+@requires("TMDB_API", "TMDB")
 class ImportYamtrackPartials(TestCase):
     """Test importing yamtrack media with no ID."""
 

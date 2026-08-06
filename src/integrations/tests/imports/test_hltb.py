@@ -7,6 +7,7 @@ from django.test import TestCase
 from app.models import (
     Game,
 )
+from app.tests.providers._skip import requires
 from integrations.imports import (
     hltb,
 )
@@ -17,6 +18,11 @@ app_mock_path = (
 )
 
 
+@requires(
+    "IGDB",
+    "IGDB",
+    check=lambda s: bool(s.IGDB_ID and s.IGDB_SECRET),
+)
 class ImportHowLongToBeat(TestCase):
     """Test importing media from HowLongToBeat CSV."""
 

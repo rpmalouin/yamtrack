@@ -12,6 +12,7 @@ from app.models import (
     Movie,
     Status,
 )
+from app.tests.providers._skip import requires
 from integrations.imports import (
     imdb,
 )
@@ -22,6 +23,7 @@ app_mock_path = (
 )
 
 
+@requires("TMDB_API", "TMDB")
 class ImportIMDB(TestCase):
     """Test importing media from IMDB CSV."""
 

@@ -6,6 +6,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
+from app.tests.providers._skip import requires
 from integrations.webhooks.plex import PlexWebhookProcessor
 
 
@@ -29,6 +30,7 @@ class PlexWebhookTests(TestCase):
         response = self.client.post(url, data={}, content_type="application/json")
         self.assertEqual(response.status_code, 401)
 
+    @requires("TMDB_API", "TMDB")
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {
@@ -87,6 +89,7 @@ class PlexWebhookTests(TestCase):
         )
         self.assertIsNotNone(episode.end_date)
 
+    @requires("TMDB_API", "TMDB")
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
@@ -131,6 +134,7 @@ class PlexWebhookTests(TestCase):
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
@@ -175,6 +179,7 @@ class PlexWebhookTests(TestCase):
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime_episode_mark_played(self):
         """Test webhook handles anime episode mark played event."""
         payload = {
@@ -284,6 +289,7 @@ class PlexWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
 
+    @requires("TMDB_API", "TMDB")
     def test_repeated_watch(self):
         """Test webhook handles repeated watches."""
         payload = {
@@ -332,6 +338,7 @@ class PlexWebhookTests(TestCase):
         self.assertEqual(movie[0].status, Status.COMPLETED.value)
         self.assertEqual(movie[1].status, Status.COMPLETED.value)
 
+    @requires("TMDB_API", "TMDB")
     def test_username_matching(self):
         """Test Plex username matching functionality."""
         test_cases = [

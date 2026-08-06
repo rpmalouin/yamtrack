@@ -15,6 +15,7 @@ from app.models import (
     Season,
     Status,
 )
+from app.tests.providers._skip import requires
 from integrations.imports import (
     helpers,
     simkl,
@@ -40,6 +41,7 @@ class ImportSimkl(TestCase):
         )
 
     @patch("integrations.imports.simkl.SimklImporter._get_user_list")
+    @requires("TMDB_API", "TMDB")
     def test_importer(
         self,
         user_list,

@@ -20,8 +20,10 @@ from app.models import (
     Sources,
     Status,
 )
+from app.tests.providers._skip import requires
 
 
+@requires("MAL_API", "MyAnimeList")
 class ExportCSVTest(TestCase):
     """Test exporting media to CSV."""
 

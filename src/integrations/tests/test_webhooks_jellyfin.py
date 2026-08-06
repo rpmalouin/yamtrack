@@ -17,6 +17,7 @@ from app.models import (
     Sources,
     Status,
 )
+from app.tests.providers._skip import requires
 from integrations.webhooks.jellyfin import JellyfinWebhookProcessor
 
 
@@ -36,6 +37,7 @@ class JellyfinWebhookTests(TestCase):
         response = self.client.post(url, data={}, content_type="application/json")
         self.assertEqual(response.status_code, 401)
 
+    @requires("TMDB_API", "TMDB")
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {
@@ -285,6 +287,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
 
+    @requires("TMDB_API", "TMDB")
     def test_mark_played_enabled(self):
         """Test Jellyfin MarkPlayed events are handled when enabled."""
         self.user.jellyfin_mark_played_enabled = True
@@ -351,6 +354,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
 
+    @requires("TMDB_API", "TMDB")
     def test_mark_unplayed_enabled_deletes_tv_episode(self):
         """Test Jellyfin MarkUnplayed removes a watched episode when enabled."""
         self.user.jellyfin_mark_played_enabled = True
@@ -511,6 +515,7 @@ class JellyfinWebhookTests(TestCase):
             ).exists(),
         )
 
+    @requires("TMDB_API", "TMDB")
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
@@ -540,6 +545,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
@@ -569,6 +575,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
+    @requires("MAL_API", "MyAnimeList")
     def test_anime_episode_mark_played(self):
         """Test webhook handles anime episode mark played event."""
         payload = {
@@ -643,6 +650,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
 
+    @requires("TMDB_API", "TMDB")
     def test_mark_unplayed(self):
         """Test webhook handles not finished events."""
         payload = {
@@ -672,6 +680,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie.progress, 0)
         self.assertEqual(movie.status, Status.IN_PROGRESS.value)
 
+    @requires("TMDB_API", "TMDB")
     def test_repeated_watch(self):
         """Test webhook handles repeated watches."""
         payload = {

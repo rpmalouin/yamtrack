@@ -11,6 +11,7 @@ from app.models import (
     Status,
 )
 from app.providers import services
+from app.tests.providers._skip import requires
 from integrations.imports import (
     goodreads,
 )
@@ -21,6 +22,7 @@ app_mock_path = (
 )
 
 
+@requires("HARDCOVER_API", "Hardcover")
 class ImportGoodreads(TestCase):
     """Test importing media from GoodReads CSV."""
 

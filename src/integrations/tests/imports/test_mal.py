@@ -12,6 +12,7 @@ from app.models import (
     Manga,
     Status,
 )
+from app.tests.providers._skip import requires
 from integrations.imports import (
     helpers,
     mal,
@@ -78,6 +79,7 @@ class ImportMAL(TestCase):
             datetime(2022, 12, 28, 19, 20, 54, tzinfo=UTC),
         )
 
+    @requires("MAL_API", "MyAnimeList")
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
         self.assertRaises(
