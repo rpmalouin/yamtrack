@@ -31,6 +31,7 @@ urlpatterns = [
     path("import/kitsu", views.import_kitsu, name="import_kitsu"),
     path("import/yamtrack", views.import_yamtrack, name="import_yamtrack"),
     path("import/plex", views.import_plex, name="import_plex"),
+    path("import/emby", views.import_emby, name="import_emby"),
     path("import/hltb", views.import_hltb, name="import_hltb"),
     path("import/steam", views.import_steam, name="import_steam"),
     path("import/imdb", views.import_imdb, name="import_imdb"),

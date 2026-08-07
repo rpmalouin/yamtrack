@@ -28,6 +28,11 @@ mostly the same):
   Handles two Plex quirks: TLS verification is skipped for the user-supplied server
   URL (self-signed LAN cert), and the library query requests `?includeGuids=1` so
   `tmdb://` ids are returned.
+- **Emby library import.** A new *Emby* import source (Settings → Import → Emby)
+  reads your Emby server over its HTTP API and imports **watched movies** and
+  **fully-watched shows** as **Completed**, with one-time or periodic (daily/2-day)
+  sync. Authenticates with your Emby username/password so you import your own
+  playback history, and resolves TMDB ids directly from Emby's `ProviderIds`.
 - **Plex webhook clarity.** The Plex setup instructions now call out the easy-to-miss
   **Enable webhooks** checkbox, and a rejected username now logs at **warning** level
   (with the configured usernames) instead of only at debug.
@@ -78,7 +83,7 @@ The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fu
 - 👥 Multi-users functionality allowing individual accounts with personalized tracking.
 - 🔑 Flexible authentication options including OIDC and 100+ social providers (Google, GitHub, Discord, etc.) via django-allauth.
 - 🦀 Integration with [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/) and [Emby](https://emby.media/) to automatically track new media watched.
-- 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/) and **your own [Plex](https://plex.tv/) server** with support for periodic automatic imports.
+- 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/) and **your own [Plex](https://plex.tv/) / [Emby](https://emby.media/) server** with support for periodic automatic imports.
 - 📊 Export all your tracked media to a CSV file and import it back.
 
 ## 📱 Screenshots

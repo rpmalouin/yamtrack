@@ -11,6 +11,7 @@ from app.models import MediaTypes
 from app.templatetags import app_tags
 from integrations.imports import (
     anilist,
+    emby,
     goodreads,
     helpers,
     hltb,
@@ -182,3 +183,16 @@ def import_goodreads(file_content, user_id, mode):
 def import_plex(user_id, mode, token=None, username=None):
     """Celery task for importing completed media from a Plex server."""
     return import_media(plex.importer, username, user_id, mode, token=token)
+
+
+@shared_task(name="Import from Emby")
+def import_emby(user_id, mode, username=None, password=None, emby_username=None):
+    """Celery task for importing completed media from an Emby server."""
+    return import_media(
+        emby.importer,
+        username,
+        user_id,
+        mode,
+        emby_username=emby_username,
+        token=password,
+    )

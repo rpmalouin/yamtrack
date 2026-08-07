@@ -388,6 +388,46 @@ def import_plex(request):
 
 
 @require_POST
+def import_emby(request):
+    """View for importing completed media from an Emby server."""
+    server_url = request.POST.get("server_url", "").strip()
+    emby_username = request.POST.get("username", "").strip()
+    emby_password = request.POST.get("password", "").strip()
+
+    if not server_url or not emby_username or not emby_password:
+        messages.error(request, "Emby server URL, username and password are required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+    import_time = request.POST["time"]
+
+    enc_password = helpers.encrypt(emby_password)
+
+    if frequency == "once":
+        tasks.import_emby.delay(
+            user_id=request.user.id,
+            mode=mode,
+            username=server_url,
+            emby_username=emby_username,
+            password=enc_password,
+        )
+        messages.info(request, "The task to import media from Emby has been queued.")
+    else:
+        helpers.create_import_schedule(
+            server_url,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Emby",
+            token=enc_password,
+            task_kwargs={"emby_username": emby_username},
+        )
+    return redirect("import_data")
+
+
+@require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
     file = request.FILES.get("yamtrack_csv")

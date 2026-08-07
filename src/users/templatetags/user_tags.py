@@ -56,6 +56,10 @@ SOURCES_CONFIG = {
         "name": "Plex",
         "logo": static("img/plex-logo.svg"),
     },
+    "emby": {
+        "name": "Emby",
+        "logo": static("img/emby-logo.svg"),
+    },
 }
 
 

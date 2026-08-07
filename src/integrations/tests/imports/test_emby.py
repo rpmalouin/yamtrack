@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from defusedxml import ElementTree
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -8,53 +7,55 @@ from requests import Response
 from requests.exceptions import HTTPError
 
 from app.models import Episode, MediaTypes, Status
-from integrations.imports import helpers, plex
+from integrations.imports import emby, helpers
 
-SECTIONS_XML = """
-<MediaContainer>
-  <Directory key="1" type="movie" title="Movies"/>
-  <Directory key="2" type="show" title="TV Shows"/>
-</MediaContainer>
-"""
+AUTH_RESPONSE = {
+    "User": {"Id": "user1", "Name": "emby-user"},
+    "AccessToken": "access-token",
+    "ServerId": "server1",
+}
 
-MOVIES_XML = """
-<MediaContainer>
-  <Video ratingKey="1" title="The Matrix" type="movie" viewCount="1"
-         lastViewedAt="1704067200">
-    <Guid id="tmdb://603"/>
-    <Guid id="imdb://tt0133093"/>
-  </Video>
-  <Video ratingKey="2" title="Unwatched Movie" type="movie" viewCount="0">
-    <Guid id="tmdb://999"/>
-  </Video>
-</MediaContainer>
-"""
+ITEMS_RESPONSE = {
+    "Items": [
+        {
+            "Type": "Movie",
+            "Name": "The Matrix",
+            "ProviderIds": {"Tmdb": "603"},
+            "UserData": {"Played": True},
+            "DatePlayed": "2024-01-01T00:00:00.0000000Z",
+        },
+        {
+            "Type": "Movie",
+            "Name": "Unwatched Movie",
+            "ProviderIds": {"Tmdb": "999"},
+            "UserData": {"Played": False},
+        },
+        {
+            "Type": "Series",
+            "Name": "Breaking Bad",
+            "ProviderIds": {"Tmdb": "1396"},
+            "UserData": {"PlayedPercentage": 100},
+            "DatePlayed": "2024-01-01T00:00:00.0000000Z",
+        },
+        {
+            "Type": "Series",
+            "Name": "Half Watched",
+            "ProviderIds": {"Tmdb": "100"},
+            "UserData": {"PlayedPercentage": 50},
+        },
+    ],
+    "TotalRecordCount": 4,
+}
 
-SHOWS_XML = """
-<MediaContainer>
-  <Directory ratingKey="3" title="Breaking Bad" type="show"
-             leafCount="62" viewedLeafCount="62" lastViewedAt="1704067200">
-    <Guid id="tmdb://1396"/>
-  </Directory>
-  <Directory ratingKey="4" title="Half Watched" type="show"
-             leafCount="62" viewedLeafCount="30">
-    <Guid id="tmdb://100"/>
-  </Directory>
-</MediaContainer>
-"""
 
-
-class ImportPlex(TestCase):
-    """Test importing completed media from a Plex server."""
+class ImportEmby(TestCase):
+    """Test importing completed media from an Emby server."""
 
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
-        self.token = helpers.encrypt("plex-token")
-
-    def _tree(self, xml):
-        return ElementTree.fromstring(xml)
+        self.token = helpers.encrypt("emby-password")
 
     def _resolve(self, media_id):
         if media_id == "603":
@@ -98,7 +99,7 @@ class ImportPlex(TestCase):
     @patch("integrations.imports.base.app.providers.tmdb.tv")
     @patch("integrations.imports.base.app.providers.tmdb.tv_with_seasons")
     @patch("integrations.imports.base.app.providers.tmdb.movie")
-    @patch("integrations.imports.plex.services.api_request")
+    @patch("integrations.imports.emby.services.api_request")
     def test_import_completed_media(
         self,
         mock_api_request,
@@ -106,25 +107,17 @@ class ImportPlex(TestCase):
         mock_tv_with_seasons,
         mock_tv,
     ):
-        """Test importing completed movies and shows."""
-        mock_api_request.side_effect = [
-            self._tree(SECTIONS_XML),
-            self._tree(MOVIES_XML),
-            self._tree(SHOWS_XML),
-        ]
+        """Test importing completed movies and fully-watched shows."""
+        mock_api_request.side_effect = [AUTH_RESPONSE, ITEMS_RESPONSE]
         mock_movie.side_effect = self._resolve
         mock_tv.side_effect = self._resolve
         mock_tv_with_seasons.side_effect = self._tv_with_seasons
-        # Ensure the sections are fetched with includeGuids so TMDB ids resolve
-        urls = [call.args[2] for call in mock_api_request.call_args_list]
-        self.assertTrue(
-            all("includeGuids=1" in url for url in urls[1:]),
-        )
 
-        imported_counts, warnings = plex.importer(
-            "http://localhost:32400",
+        imported_counts, warnings = emby.importer(
+            "http://localhost:8096",
             self.user,
             "new",
+            emby_username="emby-user",
             token=self.token,
         )
 
@@ -154,64 +147,77 @@ class ImportPlex(TestCase):
         self.assertFalse(self.user.tv_set.filter(item__media_id="100").exists())
         self.assertEqual(warnings, "")
 
-    @patch("integrations.imports.plex.services.api_request")
+    @patch("integrations.imports.emby.services.api_request")
+    def test_import_strips_and_authenticates(self, mock_api_request):
+        """Test the server URL is normalized and auth precedes item fetch."""
+        # Empty items response means no TMDB processing, so the api_request
+        # mock only handles the auth call and the (single) items fetch.
+        mock_api_request.side_effect = [AUTH_RESPONSE, {"Items": [], "TotalRecordCount": 0}]
+
+        emby.importer(
+            "http://localhost:8096/",
+            self.user,
+            "new",
+            emby_username="emby-user",
+            token=self.token,
+        )
+
+        auth_call, items_call = mock_api_request.call_args_list
+        # Auth uses POST to /Users/AuthenticateByName
+        self.assertEqual(auth_call.args[1], "POST")
+        self.assertTrue(auth_call.args[2].endswith("Users/AuthenticateByName"))
+        self.assertIn("X-Emby-Authorization", auth_call.kwargs["headers"])
+        # Item fetch is a GET scoped to the authenticated user id
+        self.assertEqual(items_call.args[1], "GET")
+        self.assertIn("/Users/user1/Items", items_call.args[2])
+        self.assertEqual(items_call.kwargs["headers"]["X-Emby-Token"], "access-token")
+
+    @patch("integrations.imports.emby.services.api_request")
     def test_import_invalid_credentials(self, mock_api_request):
-        """Test that an invalid token raises a friendly error."""
+        """Test that invalid credentials raise a friendly error."""
         response = Response()
         response.status_code = 401
         mock_api_request.side_effect = HTTPError(response=response)
 
         with self.assertRaises(helpers.MediaImportError) as context:
-            plex.importer(
-                "http://localhost:32400",
+            emby.importer(
+                "http://localhost:8096",
                 self.user,
                 "new",
+                emby_username="emby-user",
                 token=self.token,
             )
 
-        self.assertIn("Invalid Plex server URL or token", str(context.exception))
+        self.assertIn("Invalid Emby server URL or credentials", str(context.exception))
 
-    def test_helper_is_watched_and_fully_watched(self):
-        """Test the watched/completed detection helpers."""
-        movie = ElementTree.fromstring(
-            '<Video ratingKey="1" viewCount="1"><Guid id="tmdb://603"/></Video>'
-        )
-        self.assertTrue(plex._is_watched(movie))
-
-        unwatched = ElementTree.fromstring('<Video ratingKey="2" viewCount="0"/>')
-        self.assertFalse(plex._is_watched(unwatched))
-
-        show = ElementTree.fromstring(
-            '<Directory ratingKey="3" leafCount="10" viewedLeafCount="10"/>'
-        )
-        self.assertTrue(plex._is_fully_watched(show))
-
-        half = ElementTree.fromstring(
-            '<Directory ratingKey="4" leafCount="10" viewedLeafCount="5"/>'
-        )
-        self.assertFalse(plex._is_fully_watched(half))
-
-        self.assertEqual(plex._get_tmdb_id(movie), "603")
+    def test_is_progress_complete(self):
+        """Test the fully-watched series detection helper."""
+        self.assertTrue(emby._is_progress_complete({"PlayedPercentage": 100}))
+        self.assertFalse(emby._is_progress_complete({"PlayedPercentage": 99.9}))
+        self.assertFalse(emby._is_progress_complete({"PlayedPercentage": 50}))
+        self.assertFalse(emby._is_progress_complete({}))
+        self.assertFalse(emby._is_progress_complete({"PlayedPercentage": "x"}))
 
 
-class ImportPlexViewTests(TestCase):
-    """Test the Plex import view."""
+class ImportEmbyViewTests(TestCase):
+    """Test the Emby import view."""
 
     def setUp(self):
         """Log in a user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
-        self.url = reverse("import_plex")
+        self.url = reverse("import_emby")
 
-    @patch("integrations.views.tasks.import_plex.delay")
-    def test_import_plex_once(self, mock_delay):
-        """Test a one-time import queues the Plex import task."""
+    @patch("integrations.views.tasks.import_emby.delay")
+    def test_import_emby_once(self, mock_delay):
+        """Test a one-time import queues the Emby import task."""
         response = self.client.post(
             self.url,
             {
-                "server_url": "http://localhost:32400",
-                "token": "secret-token",
+                "server_url": "http://localhost:8096",
+                "username": "emby-user",
+                "password": "secret-password",
                 "mode": "new",
                 "frequency": "once",
                 "time": "14:30",
@@ -222,25 +228,31 @@ class ImportPlexViewTests(TestCase):
         self.assertEqual(mock_delay.call_args.kwargs["mode"], "new")
         self.assertEqual(
             mock_delay.call_args.kwargs["username"],
-            "http://localhost:32400",
+            "http://localhost:8096",
         )
+        self.assertEqual(
+            mock_delay.call_args.kwargs["emby_username"],
+            "emby-user",
+        )
+        self.assertIn("password", mock_delay.call_args.kwargs)
 
-    def test_import_plex_missing_fields(self):
-        """Test that missing server URL or token is rejected."""
+    def test_import_emby_missing_fields(self):
+        """Test that missing fields are rejected."""
         response = self.client.post(
             self.url,
-            {"server_url": "", "token": "", "mode": "new", "frequency": "once"},
+            {},
         )
         self.assertRedirects(response, reverse("import_data"))
 
     @patch("integrations.views.helpers.create_import_schedule")
-    def test_import_plex_periodic(self, mock_schedule):
-        """Test a periodic import schedules the Plex import task."""
+    def test_import_emby_periodic(self, mock_schedule):
+        """Test a periodic import schedules the Emby import task."""
         response = self.client.post(
             self.url,
             {
-                "server_url": "http://localhost:32400",
-                "token": "secret-token",
+                "server_url": "http://localhost:8096",
+                "username": "emby-user",
+                "password": "secret-password",
                 "mode": "new",
                 "frequency": "daily",
                 "time": "09:00",
@@ -248,5 +260,9 @@ class ImportPlexViewTests(TestCase):
         )
         self.assertRedirects(response, reverse("import_data"))
         mock_schedule.assert_called_once()
-        self.assertEqual(mock_schedule.call_args.args[5], "Plex")
+        self.assertEqual(mock_schedule.call_args.args[5], "Emby")
+        self.assertEqual(
+            mock_schedule.call_args.kwargs["task_kwargs"],
+            {"emby_username": "emby-user"},
+        )
         self.assertIn("token", mock_schedule.call_args.kwargs)
