@@ -1,6 +1,6 @@
 # Installation
 
-This guide covers running **your fork** of Yamtrack built **locally from source**
+This guide covers running **this fork** of Yamtrack built **locally from source**
 instead of pulling the published upstream image. Because this fork adds its own
 features (Plex/Emby library import, the Unwatched queue, etc.), the Compose files
 here build the local source into a `yamtrack:local` image — they do **not** use
