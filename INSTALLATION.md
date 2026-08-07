@@ -12,8 +12,9 @@ here build the local source into a `yamtrack:local` image — they do **not** us
 - A clone of **this fork**:
 
 ```bash
-git clone https://github.com/rpmalouin/yamtrack.git
+mkdir yamtrack
 cd yamtrack
+git clone https://github.com/rpmalouin/yamtrack.git
 ```
 
 ## 1) Configure the environment
