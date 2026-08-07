@@ -27,6 +27,7 @@ from app.models import (
     Episode,
     Item,
     MediaTypes,
+    Movie,
     Season,
     Sources,
     Status,
@@ -441,6 +442,85 @@ def update_media_score(request, media_type, instance_id):
             "success": True,
             "score": score,
         },
+    )
+
+
+def unwatched(request):
+    """Render the Unwatched review page with paginated Unwatched media."""
+    from integrations.imports import helpers as helpers_import
+
+    kind = request.GET.get("kind", "all").lower()
+    page = request.GET.get("page", 1)
+
+    instances = []
+    if kind in ("all", "movie"):
+        instances.extend(
+            ("movie", movie)
+            for movie in Movie.objects.filter(
+                user=request.user,
+                status=Status.UNWATCHED.value,
+            ).select_related("item")
+        )
+    if kind in ("all", "tv"):
+        instances.extend(
+            ("tv", show)
+            for show in TV.objects.filter(
+                user=request.user,
+                status=Status.UNWATCHED.value,
+            ).select_related("item")
+        )
+
+    instances.sort(key=lambda entry: entry[1].item.title.lower())
+
+    saved_url, saved_token = helpers_import.get_user_plex_connection(request.user)
+
+    items_per_page = 32
+    paginator = Paginator(instances, items_per_page)
+    media_page = paginator.get_page(page)
+
+    context = {
+        "media_list": media_page,
+        "current_kind": kind,
+        "kind_choices": [
+            ("all", "All"),
+            ("movie", "Movies"),
+            ("tv", "TV Shows"),
+        ],
+        "saved_server_url": saved_url,
+        "has_saved_token": bool(saved_token),
+        "plex_token_hint": (
+            'sed -n \'s/.*PlexOnlineToken="\\([^"]*\\)".*/\\1/p\' '
+            '"/appdata/plex/config/Library/Application Support/Plex Media Server/Preferences.xml"'
+        ),
+    }
+    return render(request, "app/unwatched.html", context)
+
+
+@require_POST
+def unwatched_complete(request, media_type, instance_id):
+    """Mark an Unwatched item as Completed with an optional rating."""
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
+
+    media.status = Status.COMPLETED.value
+
+    score = request.POST.get("score", "").strip()
+    if score:
+        try:
+            media.score = float(score)
+        except ValueError:
+            media.score = None
+
+    if media_type == MediaTypes.MOVIE.value:
+        media.end_date = timezone.now()
+        media.progress = 1
+    media.save()
+
+    logger.info("%s completed from Unwatched with score %s", media, media.score)
+
+    page = request.POST.get("page", "1")
+    kind = request.POST.get("kind", "all")
+    return redirect(
+        "{}?kind={}&page={}".format(reverse("unwatched"), kind, page)
     )
 
 

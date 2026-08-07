@@ -185,6 +185,12 @@ def import_plex(user_id, mode, token=None, username=None):
     return import_media(plex.importer, username, user_id, mode, token=token)
 
 
+@shared_task(name="Import Unwatched from Plex")
+def import_plex_unwatched(user_id, mode, token=None, username=None):
+    """Celery task for importing unwatched media from a Plex server."""
+    return import_media(plex.unwatched_importer, username, user_id, mode, token=token)
+
+
 @shared_task(name="Import from Emby")
 def import_emby(user_id, mode, username=None, password=None, emby_username=None):
     """Celery task for importing completed media from an Emby server."""

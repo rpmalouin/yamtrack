@@ -52,6 +52,7 @@ class MediaStatusChoices(models.TextChoices):
     PLANNING = Status.PLANNING.value, Status.PLANNING.label
     PAUSED = Status.PAUSED.value, Status.PAUSED.label
     DROPPED = Status.DROPPED.value, Status.DROPPED.label
+    UNWATCHED = Status.UNWATCHED.value, Status.UNWATCHED.label
 
 
 class LayoutChoices(models.TextChoices):
@@ -422,6 +423,15 @@ class User(AbstractUser):
     plex_usernames = models.TextField(
         blank=True,
         help_text="Comma-separated list of Plex usernames for webhook matching",
+    )
+    plex_server_url = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Plex server URL used for library import (saved so you don't repeat it)",
+    )
+    plex_api_token = models.TextField(
+        blank=True,
+        help_text="Plex API token, symmetrically encrypted",
     )
     jellyfin_mark_played_enabled = models.BooleanField(
         default=False,

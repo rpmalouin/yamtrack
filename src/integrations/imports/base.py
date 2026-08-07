@@ -36,10 +36,18 @@ class BaseImporter:
         self.user = user
         self.mode = mode
         self.warnings = []
+        # Importers can set this to Status.UNWATCHED to create "Unwatched"
+        # items instead of Completed media.
+        self.target_status = Status.COMPLETED.value
 
         self.existing_media = helpers.get_existing_media(user)
         self.to_delete = defaultdict(lambda: defaultdict(set))
         self.bulk_media = defaultdict(list)
+
+    @property
+    def completed(self):
+        """Return True when this importer creates Completed media."""
+        return self.target_status == Status.COMPLETED.value
 
     def import_data(self):
         """Import all completed media and return counts plus warning messages."""
@@ -91,10 +99,10 @@ class BaseImporter:
         movie_instance = app.models.Movie(
             item=movie_item,
             user=self.user,
-            status=Status.COMPLETED.value,
-            progress=1,
-            start_date=last_viewed,
-            end_date=last_viewed,
+            status=self.target_status,
+            progress=1 if self.completed else 0,
+            start_date=last_viewed if self.completed else None,
+            end_date=last_viewed if self.completed else None,
             notes=self.notes,
         )
         movie_instance._history_date = last_viewed or timezone.now()
@@ -118,17 +126,20 @@ class BaseImporter:
             self._handle_metadata_error(tmdb_id, title, error)
             return
 
-        season_numbers = [
-            season["season_number"]
-            for season in tv_metadata.get("related", {}).get("seasons", [])
-            if season.get("season_number", 0) > 0
-        ]
+        season_numbers = []
+        metadata = {}
 
-        try:
-            metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
-        except services.ProviderAPIError as error:
-            self._handle_metadata_error(tmdb_id, title, error)
-            return
+        if self.completed:
+            season_numbers = [
+                season["season_number"]
+                for season in tv_metadata.get("related", {}).get("seasons", [])
+                if season.get("season_number", 0) > 0
+            ]
+            try:
+                metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
+            except services.ProviderAPIError as error:
+                self._handle_metadata_error(tmdb_id, title, error)
+                return
 
         tv_item, _ = app.models.Item.objects.get_or_create(
             media_id=str(tmdb_id),
@@ -143,11 +154,14 @@ class BaseImporter:
         tv_instance = app.models.TV(
             item=tv_item,
             user=self.user,
-            status=Status.COMPLETED.value,
+            status=self.target_status,
             notes=self.notes,
         )
         tv_instance._history_date = last_viewed or timezone.now()
         self.bulk_media[MediaTypes.TV.value].append(tv_instance)
+
+        if not self.completed:
+            return
 
         for season_number in season_numbers:
             self._process_completed_season(

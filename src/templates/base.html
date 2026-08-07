@@ -129,6 +129,21 @@
                     </a>
                   </li>
 
+                  {% url 'unwatched' as unwatched_url %}
+                  <li>
+                    <a href="{{ unwatched_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == unwatched_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:unwatched_url %}
+                        {% include "app/icons/eye.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/eye.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Unwatched</span>
+                    </a>
+                  </li>
+
                   {% url 'statistics' as statistics_url %}
                   <li>
                     <a href="{{ statistics_url }}"

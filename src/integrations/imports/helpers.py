@@ -305,3 +305,31 @@ def encrypt(value):
 def decrypt(token):
     """Decrypt value that was encrypted with `encrypt`."""
     return fernet().decrypt(token.encode()).decode()
+
+
+def get_user_plex_connection(user):
+    """Return the user's saved Plex server URL (and decrypted token).
+
+    Returns:
+        tuple[str, str]: (server_url, api_token) — either may be empty.
+    """
+    server_url = (user.plex_server_url or "").strip()
+    token = ""
+    if user.plex_api_token:
+        try:
+            token = decrypt(user.plex_api_token)
+        except Exception:  # pragma: no cover - corrupted token
+            token = ""
+    return server_url, token
+
+
+def save_user_plex_connection(user, server_url, token):
+    """Persist the user's Plex server URL and API token (token encrypted)."""
+    server_url = (server_url or "").strip()
+    token = (token or "").strip()
+
+    if server_url or token:
+        user.plex_server_url = server_url
+        if token:
+            user.plex_api_token = encrypt(token)
+        user.save(update_fields=["plex_server_url", "plex_api_token"])

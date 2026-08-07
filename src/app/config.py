@@ -53,6 +53,7 @@ COLORS = {
     "cyan": {
         "text": "text-cyan-400",
         "background": "bg-cyan-400",
+        "background_strong": "bg-cyan-500",
         "hex": "#06b6d4",
     },
     "lime": {
@@ -262,6 +263,13 @@ STATUS_CONFIG = {
         "background_color": COLORS["red"]["background"],
         "background_color_strong": COLORS["red"]["background_strong"],
         "icon": "app/icons/states/dropped.svg",
+    },
+    Status.UNWATCHED.value: {
+        "text_color": COLORS["cyan"]["text"],
+        "stats_color": COLORS["cyan"]["hex"],
+        "background_color": COLORS["cyan"]["background"],
+        "background_color_strong": COLORS["cyan"]["background_strong"],
+        "icon": "app/icons/states/unwatched.svg",
     },
 }
 

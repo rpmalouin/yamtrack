@@ -33,6 +33,14 @@ mostly the same):
   **fully-watched shows** as **Completed**, with one-time or periodic (daily/2-day)
   sync. Authenticates with your Emby username/password so you import your own
   playback history, and resolves TMDB ids directly from Emby's `ProviderIds`.
+- **Unwatched review queue.** A new *Unwatched* section (sidebar) syncs your
+  **unwatched** movies and not-fully-watched shows from Plex into an `Unwatched`
+  status. Work through the paginated list, rate each item, and mark it
+  *Completed* (moving it out of the queue) in one step.
+- **Persisted Plex connection.** Your Plex server URL and API token are saved
+  (token encrypted at rest) after your first sync, so the Unwatched page and the
+  Plex import prefill/reuse them — no re-entering every time. The page also shows
+  the `sed` one-liner to pull `PlexOnlineToken` from Plex's `Preferences.xml`.
 - **Plex webhook clarity.** The Plex setup instructions now call out the easy-to-miss
   **Enable webhooks** checkbox, and a rejected username now logs at **warning** level
   (with the configured usernames) instead of only at debug.

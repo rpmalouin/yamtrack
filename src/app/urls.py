@@ -8,6 +8,12 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("unwatched", views.unwatched, name="unwatched"),
+    path(
+        "unwatched/complete/<media_type:media_type>/<int:instance_id>",
+        views.unwatched_complete,
+        name="unwatched_complete",
+    ),
     path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(

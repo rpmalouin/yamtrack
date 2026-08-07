@@ -171,6 +171,72 @@ class ImportPlex(TestCase):
 
         self.assertIn("Invalid Plex server URL or token", str(context.exception))
 
+    UNWATCHED_MOVIES_XML = """
+    <MediaContainer>
+      <Video ratingKey="1" title="Unwatched Movie" type="movie" viewCount="0">
+        <Guid id="tmdb://603"/>
+      </Video>
+      <Video ratingKey="2" title="Watched Movie" type="movie" viewCount="1">
+        <Guid id="tmdb://999"/>
+      </Video>
+    </MediaContainer>
+    """
+
+    PARTIAL_SHOWS_XML = """
+    <MediaContainer>
+      <Directory ratingKey="3" title="Partial Show" type="show"
+                 leafCount="62" viewedLeafCount="30">
+        <Guid id="tmdb://1396"/>
+      </Directory>
+      <Directory ratingKey="4" title="Fully Watched Show" type="show"
+                 leafCount="62" viewedLeafCount="62">
+        <Guid id="tmdb://100"/>
+      </Directory>
+    </MediaContainer>
+    """
+
+    @patch("integrations.imports.base.app.providers.tmdb.tv")
+    @patch("integrations.imports.base.app.providers.tmdb.movie")
+    @patch("integrations.imports.plex.services.api_request")
+    def test_import_unwatched_media(
+        self,
+        mock_api_request,
+        mock_movie,
+        mock_tv,
+    ):
+        """Test importing unwatched movies and not-fully-watched shows."""
+        mock_api_request.side_effect = [
+            self._tree(SECTIONS_XML),
+            self._tree(self.UNWATCHED_MOVIES_XML),
+            self._tree(self.PARTIAL_SHOWS_XML),
+        ]
+        mock_movie.side_effect = self._resolve
+        mock_tv.side_effect = self._resolve
+
+        imported_counts, warnings = plex.unwatched_importer(
+            "http://localhost:32400",
+            self.user,
+            "new",
+            token=self.token,
+        )
+
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
+        self.assertEqual(imported_counts.get(MediaTypes.SEASON.value, 0), 0)
+        self.assertEqual(imported_counts.get(MediaTypes.EPISODE.value, 0), 0)
+
+        movie = self.user.movie_set.get(item__media_id="603")
+        self.assertEqual(movie.status, Status.UNWATCHED.value)
+        self.assertEqual(movie.progress, 0)
+
+        tv = self.user.tv_set.get(item__media_id="1396")
+        self.assertEqual(tv.status, Status.UNWATCHED.value)
+        self.assertFalse(self.user.season_set.filter(related_tv=tv).exists())
+
+        self.assertFalse(self.user.movie_set.filter(item__media_id="999").exists())
+        self.assertFalse(self.user.tv_set.filter(item__media_id="100").exists())
+        self.assertEqual(warnings, "")
+
     def test_helper_is_watched_and_fully_watched(self):
         """Test the watched/completed detection helpers."""
         movie = ElementTree.fromstring(

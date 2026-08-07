@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+from app.models import Status
 from app.providers import services
 from integrations.imports import helpers
 from integrations.imports.base import BaseImporter, as_datetime
@@ -21,12 +22,24 @@ def importer(server_url, user, mode, token):
     return plex_importer.import_data()
 
 
+def unwatched_importer(server_url, user, mode, token):
+    """Import unwatched/partially-watched movies and shows as Unwatched."""
+    plex_importer = PlexImporter(
+        server_url,
+        user,
+        mode,
+        token,
+        watch_state="unwatched",
+    )
+    return plex_importer.import_data()
+
+
 class PlexImporter(BaseImporter):
     """Class to handle importing completed media from a Plex server."""
 
     notes = "Imported from Plex"
 
-    def __init__(self, server_url, user, mode, token):
+    def __init__(self, server_url, user, mode, token, watch_state="completed"):
         """Initialize the importer.
 
         Args:
@@ -34,16 +47,22 @@ class PlexImporter(BaseImporter):
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
             token (str): Fluctuating/API token, symmetrically encrypted
+            watch_state (str): "completed" (default) or "unwatched"
         """
         super().__init__(user, mode)
         self.base_url = server_url.strip().rstrip("/")
         self.headers = {"X-Plex-Token": helpers.decrypt(token)}
+        if watch_state == "unwatched":
+            self.target_status = Status.UNWATCHED.value
+            self.notes = "Synced from Plex (Unwatched)"
 
         logger.info(
-            "Initialized Plex importer for user %s (server %s) with mode %s",
+            "Initialized Plex importer for user %s (server %s) with mode %s "
+            "and watch_state %s",
             user.username,
             self.base_url,
             mode,
+            watch_state,
         )
 
     def _api(self, path):
@@ -99,11 +118,12 @@ class PlexImporter(BaseImporter):
         return sections
 
     def _process_movie_section(self, section):
-        """Import all watched movies in a movie library section."""
+        """Import all watched (or unwatched) movies in a movie library section."""
         key = section["key"]
         root = self._api(f"/library/sections/{key}/all?includeGuids=1")
+        predicate = _is_watched if self.completed else _is_unwatched
         for item in _iter_items(root):
-            if not _is_watched(item):
+            if not predicate(item):
                 continue
 
             tmdb_id = _get_tmdb_id(item)
@@ -120,11 +140,12 @@ class PlexImporter(BaseImporter):
             self._process_movie(tmdb_id, _item_title(item), last_viewed)
 
     def _process_show_section(self, section):
-        """Import all fully watched TV shows in a show library section."""
+        """Import all fully watched (or not fully watched) shows."""
         key = section["key"]
         root = self._api(f"/library/sections/{key}/all?includeGuids=1")
+        predicate = _is_fully_watched if self.completed else _is_not_fully_watched
         for item in _iter_items(root):
-            if not _is_fully_watched(item):
+            if not predicate(item):
                 continue
 
             tmdb_id = _get_tmdb_id(item)
@@ -156,6 +177,13 @@ def _is_watched(item):
         return False
 
 
+def _is_unwatched(item):
+    try:
+        return int(item.get("viewCount", "0")) < 1
+    except ValueError:
+        return False
+
+
 def _is_fully_watched(item):
     try:
         leaf_count = int(item.get("leafCount", "0"))
@@ -163,6 +191,15 @@ def _is_fully_watched(item):
     except ValueError:
         return False
     return leaf_count > 0 and viewed_leaf_count >= leaf_count
+
+
+def _is_not_fully_watched(item):
+    try:
+        leaf_count = int(item.get("leafCount", "0"))
+        viewed_leaf_count = int(item.get("viewedLeafCount", "0"))
+    except ValueError:
+        return False
+    return leaf_count > 0 and viewed_leaf_count < leaf_count
 
 
 def _get_tmdb_id(item):

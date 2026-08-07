@@ -780,6 +780,7 @@ class Status(models.TextChoices):
     PLANNING = "Planning", "Planning"
     PAUSED = "Paused", "Paused"
     DROPPED = "Dropped", "Dropped"
+    UNWATCHED = "Unwatched", "Unwatched"
 
 
 class UserMessageLevel(models.TextChoices):

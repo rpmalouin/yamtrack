@@ -353,12 +353,16 @@ def import_kitsu(request):
 @require_POST
 def import_plex(request):
     """View for importing completed media from a Plex server."""
-    server_url = request.POST.get("server_url", "").strip()
-    plex_token = request.POST.get("token", "").strip()
+    saved_url, saved_token = helpers.get_user_plex_connection(request.user)
+    server_url = request.POST.get("server_url", "").strip() or saved_url
+    plex_token = request.POST.get("token", "").strip() or saved_token
 
     if not server_url or not plex_token:
         messages.error(request, "Plex server URL and token are required.")
         return redirect("import_data")
+
+    # Persist so the user doesn't have to re-enter them next time.
+    helpers.save_user_plex_connection(request.user, server_url, plex_token)
 
     mode = request.POST["mode"]
     frequency = request.POST["frequency"]
@@ -425,6 +429,31 @@ def import_emby(request):
             task_kwargs={"emby_username": emby_username},
         )
     return redirect("import_data")
+
+
+@require_POST
+def import_plex_unwatched(request):
+    """View for importing unwatched media from a Plex server."""
+    saved_url, saved_token = helpers.get_user_plex_connection(request.user)
+    server_url = request.POST.get("server_url", "").strip() or saved_url
+    plex_token = request.POST.get("token", "").strip() or saved_token
+
+    if not server_url or not plex_token:
+        messages.error(request, "Plex server URL and token are required.")
+        return redirect("unwatched")
+
+    # Persist so the user doesn't have to re-enter them next time.
+    helpers.save_user_plex_connection(request.user, server_url, plex_token)
+
+    enc_token = helpers.encrypt(plex_token)
+    tasks.import_plex_unwatched.delay(
+        user_id=request.user.id,
+        mode="new",
+        username=server_url,
+        token=enc_token,
+    )
+    messages.info(request, "The task to import unwatched media from Plex has been queued.")
+    return redirect("unwatched")
 
 
 @require_POST
