@@ -905,11 +905,15 @@ class Media(models.Model):
         if self.progress < 0:
             self.progress = 0
         elif self.status == Status.IN_PROGRESS.value:
-            max_progress = providers.services.get_media_metadata(
-                self.item.media_type,
-                self.item.media_id,
-                self.item.source,
-            )["max_progress"]
+            try:
+                max_progress = providers.services.get_media_metadata(
+                    self.item.media_type,
+                    self.item.media_id,
+                    self.item.source,
+                )["max_progress"]
+            except (providers.services.ProviderAPIError, KeyError):
+                # Never let a provider hiccup prevent the status change from saving.
+                return
 
             if max_progress:
                 self.progress = min(self.progress, max_progress)
@@ -923,11 +927,14 @@ class Media(models.Model):
     def process_status(self):
         """Update fields depending on the status of the media."""
         if self.status == Status.COMPLETED.value:
-            max_progress = providers.services.get_media_metadata(
-                self.item.media_type,
-                self.item.media_id,
-                self.item.source,
-            )["max_progress"]
+            try:
+                max_progress = providers.services.get_media_metadata(
+                    self.item.media_type,
+                    self.item.media_id,
+                    self.item.source,
+                )["max_progress"]
+            except (providers.services.ProviderAPIError, KeyError):
+                max_progress = None
 
             if max_progress:
                 self.progress = max_progress

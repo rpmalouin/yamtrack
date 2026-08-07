@@ -56,6 +56,36 @@ class CreateMedia(TestCase):
             True,
         )
 
+    def test_add_same_movie_does_not_duplicate(self):
+        """Re-saving the same item without an instance id reuses the row."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "media_id": "10494",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.IN_PROGRESS.value,
+                "progress": 0,
+            },
+        )
+
+        rows = Movie.objects.filter(user=self.user, item=item)
+        self.assertEqual(rows.count(), 1)
+        self.assertEqual(rows.first().status, Status.IN_PROGRESS.value)
+
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_tv(self):
         """Test the creation of a TV object through views."""

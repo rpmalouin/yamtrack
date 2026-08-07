@@ -754,7 +754,11 @@ def media_save(request):
             },
         )
         model = apps.get_model(app_label="app", model_name=media_type)
-        instance = model(item=item, user=request.user)
+        # Reuse an existing tracked row for this item so re-adding/searching
+        # doesn't create duplicate rows (which can show under multiple statuses).
+        instance = model.objects.filter(user=request.user, item=item).first()
+        if instance is None:
+            instance = model(item=item, user=request.user)
 
     # Validate the form and save the instance if it's valid
     form_class = get_form_class(media_type)
