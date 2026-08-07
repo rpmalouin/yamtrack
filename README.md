@@ -21,6 +21,21 @@ mostly the same):
 - **Home page `Completed` section.** Beyond upstream's *In Progress* and
   *Planning*, the Home page now also shows a **Completed** section listing
   finished movies and TV seasons (emerald accent, per-status icon/sort).
+- **Plex library import.** A new *Plex* import source (Settings → Import → Plex)
+  reads your Plex server over its HTTP API and imports **watched movies** and
+  **fully-watched shows** as **Completed**, with one-time or periodic (daily/2-day)
+  sync — so existing Plex history can be backfilled on top of the webhook tracking.
+  Handles two Plex quirks: TLS verification is skipped for the user-supplied server
+  URL (self-signed LAN cert), and the library query requests `?includeGuids=1` so
+  `tmdb://` ids are returned.
+- **Plex webhook clarity.** The Plex setup instructions now call out the easy-to-miss
+  **Enable webhooks** checkbox, and a rejected username now logs at **warning** level
+  (with the configured usernames) instead of only at debug.
+- **Dedicated Celery queue.** Tasks run on a dedicated `yamtrack` queue instead of
+  the shared default `celery` queue, avoiding contention/starvation when the same
+  Redis broker is shared with other apps.
+- **Resilient task workers.** The `celery` and `celery-beat` supervisord programs
+  now `autorestart` (with retries), so a crashed worker is brought back automatically.
 - **No hardcoded secrets.** All credentials (Django `SECRET`, TMDB/TVDB/MAL/IGDB/
   BGG/Hardcover/ComicVine/Trakt/Simkl/AniList API keys) must now come from
   environment variables or secret files — the baked-in defaults were removed.
@@ -63,7 +78,7 @@ The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fu
 - 👥 Multi-users functionality allowing individual accounts with personalized tracking.
 - 🔑 Flexible authentication options including OIDC and 100+ social providers (Google, GitHub, Discord, etc.) via django-allauth.
 - 🦀 Integration with [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/) and [Emby](https://emby.media/) to automatically track new media watched.
-- 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/) with support for periodic automatic imports.
+- 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/) and **your own [Plex](https://plex.tv/) server** with support for periodic automatic imports.
 - 📊 Export all your tracked media to a CSV file and import it back.
 
 ## 📱 Screenshots
