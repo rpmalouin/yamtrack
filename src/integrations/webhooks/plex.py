@@ -31,9 +31,11 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
 
         payload_user = payload["Account"]["title"].strip().lower()
         if not self._is_valid_user(payload_user, user):
-            logger.debug(
-                "Ignoring Plex webhook event for user %s: not a valid user",
+            logger.warning(
+                "Ignoring Plex webhook event for user %s: not a valid user "
+                "(configured Plex usernames: %s)",
                 payload_user,
+                user.plex_usernames,
             )
             return
 

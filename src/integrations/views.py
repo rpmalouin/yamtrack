@@ -351,6 +351,43 @@ def import_kitsu(request):
 
 
 @require_POST
+def import_plex(request):
+    """View for importing completed media from a Plex server."""
+    server_url = request.POST.get("server_url", "").strip()
+    plex_token = request.POST.get("token", "").strip()
+
+    if not server_url or not plex_token:
+        messages.error(request, "Plex server URL and token are required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+    import_time = request.POST["time"]
+
+    enc_token = helpers.encrypt(plex_token)
+
+    if frequency == "once":
+        tasks.import_plex.delay(
+            user_id=request.user.id,
+            mode=mode,
+            username=server_url,
+            token=enc_token,
+        )
+        messages.info(request, "The task to import media from Plex has been queued.")
+    else:
+        helpers.create_import_schedule(
+            server_url,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Plex",
+            token=enc_token,
+        )
+    return redirect("import_data")
+
+
+@require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
     file = request.FILES.get("yamtrack_csv")

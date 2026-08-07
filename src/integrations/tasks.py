@@ -17,6 +17,7 @@ from integrations.imports import (
     imdb,
     kitsu,
     mal,
+    plex,
     simkl,
     steam,
     trakt,
@@ -175,3 +176,9 @@ def import_goodreads(file_content, user_id, mode):
         user_id,
         mode,
     )
+
+
+@shared_task(name="Import from Plex")
+def import_plex(user_id, mode, token=None, username=None):
+    """Celery task for importing completed media from a Plex server."""
+    return import_media(plex.importer, username, user_id, mode, token=token)

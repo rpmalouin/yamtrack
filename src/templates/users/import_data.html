@@ -244,6 +244,45 @@
           </form>
         </div>
 
+        {# Plex #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">{% source_display "plex" %}</div>
+            <div class="group relative">
+              {% include "app/icons/info.svg" with classes="w-4 h-4 text-gray-400" %}
+              <div class="absolute bottom-full mb-2 right-0 w-64 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600 invisible group-hover:visible">
+                Imports only media marked <strong>watched</strong> (movies) or
+                <strong>fully watched</strong> (shows) on your Plex server, and adds
+                them as Completed. Get your token from the Plex web app
+                (Settings → Server → the token shown in the network/API details).
+              </div>
+            </div>
+          </div>
+          <p class="text-sm text-gray-400 mb-3">Import completed movies and TV shows from your Plex server</p>
+          <form class="space-y-2"
+                method="post"
+                action="{% url 'import_plex' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <input placeholder="Plex server URL (e.g. http://10.1.10.10:32400)"
+                   name="server_url"
+                   class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="text"
+                   required>
+            <input placeholder="Plex API token"
+                   name="token"
+                   class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="password"
+                   required>
+            <button type="submit"
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+              Import
+            </button>
+          </form>
+        </div>
+
         {# Yamtrack #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center justify-between mb-3">

@@ -142,6 +142,8 @@ def api_request(
     data=None,
     headers=None,
     response_format="json",
+    *,
+    verify=True,
 ):
     """Make a request to the API and return the response.
 
@@ -153,6 +155,7 @@ def api_request(
         data: Raw data for POST
         headers: Request headers
         response_format: "json" (default) or "xml" for XML parsing
+        verify: Whether to verify TLS certificates (default True)
 
     Returns:
         Parsed JSON dict or ElementTree for XML
@@ -167,6 +170,7 @@ def api_request(
             "url": url,
             "headers": headers,
             "timeout": settings.REQUEST_TIMEOUT,
+            "verify": verify,
         }
 
         if method == "GET":
