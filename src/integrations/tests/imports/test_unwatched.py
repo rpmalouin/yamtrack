@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from app.models import Item, MediaTypes, Movie, Sources, Status, TV
+from app.models import TV, Item, MediaTypes, Movie, Sources, Status
 from integrations.imports import helpers
 
 
@@ -85,6 +85,7 @@ class UnwatchedCompleteTests(TestCase):
 
     @patch("app.models.providers.services.get_media_metadata")
     def test_complete_movie_with_rating(self, mock_metadata):
+        """Completing a movie sets status, score, and progress."""
         mock_metadata.return_value = {"max_progress": 1, "title": "x", "image": "x"}
         movie = Movie.objects.create(
             item=_make_item("1", MediaTypes.MOVIE.value, "Unwatched Movie"),
@@ -129,10 +130,8 @@ class UnwatchedCompleteTests(TestCase):
         self.assertEqual(tv.status, Status.COMPLETED.value)
 
     def test_complete_other_users_media_forbidden(self):
-        other = get_user_model().objects.create_user(
-            username="other",
-            password="12345",
-        )
+        """Completing another user's media is rejected with 404."""
+        other = get_user_model().objects.create_user("other", "12345")
         movie = Movie.objects.create(
             item=_make_item("5", MediaTypes.MOVIE.value, "Their Movie"),
             user=other,
@@ -179,7 +178,7 @@ class ImportPlexUnwatchedViewTests(TestCase):
         self.assertRedirects(response, reverse("unwatched"))
 
     @patch("integrations.views.tasks.import_plex_unwatched.delay")
-    def test_sync_persists_connection(self, mock_delay):
+    def test_sync_persists_connection(self, _mock_delay):
         """A valid sync persists the server URL and encrypted token."""
         self.client.post(
             self.url,

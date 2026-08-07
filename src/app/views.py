@@ -36,6 +36,7 @@ from app.models import (
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from events.models import Event
+from integrations.imports import helpers as helpers_import
 from users.models import (
     DateFormatChoices,
     HomeSortChoices,
@@ -447,8 +448,6 @@ def update_media_score(request, media_type, instance_id):
 
 def unwatched(request):
     """Render the Unwatched review page with paginated Unwatched media."""
-    from integrations.imports import helpers as helpers_import
-
     kind = request.GET.get("kind", "all").lower()
     page = request.GET.get("page", 1)
 
@@ -490,7 +489,8 @@ def unwatched(request):
         "has_saved_token": bool(saved_token),
         "plex_token_hint": (
             'sed -n \'s/.*PlexOnlineToken="\\([^"]*\\)".*/\\1/p\' '
-            '"/appdata/plex/config/Library/Application Support/Plex Media Server/Preferences.xml"'
+            '"/appdata/plex/config/Library/Application Support/'
+            'Plex Media Server/Preferences.xml"'
         ),
     }
     return render(request, "app/unwatched.html", context)

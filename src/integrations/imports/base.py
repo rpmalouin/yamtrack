@@ -265,6 +265,7 @@ def as_datetime(timestamp):
 
 
 def episode_image(still_path):
+    """Build a TMDB image URL from a still path, or the placeholder image."""
     if still_path:
         return f"https://image.tmdb.org/t/p/w500{still_path}"
     return settings.IMG_NONE

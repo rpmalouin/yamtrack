@@ -427,7 +427,10 @@ class User(AbstractUser):
     plex_server_url = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Plex server URL used for library import (saved so you don't repeat it)",
+        help_text=(
+            "Plex server URL used for library import "
+            "(saved so you don't repeat it)"
+        ),
     )
     plex_api_token = models.TextField(
         blank=True,

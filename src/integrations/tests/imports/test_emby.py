@@ -152,7 +152,10 @@ class ImportEmby(TestCase):
         """Test the server URL is normalized and auth precedes item fetch."""
         # Empty items response means no TMDB processing, so the api_request
         # mock only handles the auth call and the (single) items fetch.
-        mock_api_request.side_effect = [AUTH_RESPONSE, {"Items": [], "TotalRecordCount": 0}]
+        mock_api_request.side_effect = [
+            AUTH_RESPONSE,
+            {"Items": [], "TotalRecordCount": 0},
+        ]
 
         emby.importer(
             "http://localhost:8096/",

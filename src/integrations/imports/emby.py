@@ -20,6 +20,7 @@ _CLIENT_NAME = "Yamtrack"
 _DEVICE_NAME = "Yamtrack Importer"
 _DEVICE_ID = "yamtrack-import"
 _CLIENT_VERSION = "1.0"
+FULLY_WATCHED_PERCENTAGE = 100
 
 
 def importer(server_url, user, mode, emby_username, token):
@@ -216,7 +217,7 @@ def _is_progress_complete(user_data):
     if played_percentage is None:
         return False
     try:
-        return float(played_percentage) >= 100
+        return float(played_percentage) >= FULLY_WATCHED_PERCENTAGE
     except (TypeError, ValueError):
         return False
 
@@ -243,5 +244,4 @@ def _parse_date(value):
     """Parse an Emby ISO datetime string into an aware datetime, or None."""
     if not value:
         return None
-    parsed = parse_datetime(str(value))
-    return parsed
+    return parse_datetime(str(value))

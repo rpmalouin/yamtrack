@@ -5,7 +5,7 @@ import json
 import logging
 from collections import defaultdict
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
@@ -318,7 +318,7 @@ def get_user_plex_connection(user):
     if user.plex_api_token:
         try:
             token = decrypt(user.plex_api_token)
-        except Exception:  # pragma: no cover - corrupted token
+        except (InvalidToken, ValueError, TypeError):  # corrupted/stored value
             token = ""
     return server_url, token
 

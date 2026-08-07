@@ -452,7 +452,10 @@ def import_plex_unwatched(request):
         username=server_url,
         token=enc_token,
     )
-    messages.info(request, "The task to import unwatched media from Plex has been queued.")
+    messages.info(
+        request,
+        "The task to import unwatched media from Plex has been queued.",
+    )
     return redirect("unwatched")
 
 
