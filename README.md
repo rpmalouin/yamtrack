@@ -122,13 +122,17 @@ The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fu
 
 ## 🐳 Installing with Docker
 
-Download the default `docker-compose.yml` file from the repository, update the environment values, and start Yamtrack:
+This fork builds from source (it does not use the published upstream image).
+See **[INSTALLATION.md](INSTALLATION.md)** for full setup, or use the default
+SQLite Compose file directly:
 
 ```bash
-docker compose up -d
+cp .env.example .env   # then set a strong SECRET
+docker compose up -d --build
 ```
 
-The default Compose file uses SQLite, which is enough for most personal installs. For full SQLite, PostgreSQL, and reverse proxy setup instructions, see the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/release/setup/).
+The default Compose file uses SQLite, which is enough for most personal installs.
+For PostgreSQL and reverse proxy setup instructions, see the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/release/setup/).
 
 ## 💻 Development
 
