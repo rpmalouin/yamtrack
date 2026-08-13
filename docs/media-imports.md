@@ -103,3 +103,48 @@ The order of rows matters for TV data: import `tv` rows first, then `season` row
 | start_date     | No        | 2023-01-16 03:56:13+00:00                      | Full ISO-8601 **timestamp with timezone** `YYYY-MM-DD HH:MM:SS±HH:MM`.                                                                                                          |
 | end_date       | No        | 2023-02-10 22:15:00+00:00                      | Same format as `start_date`.                                                                                                                                                    |
 | progress       | No        | 10                                             | Numeric progress (e.g., chapters, pages, minutes). Ignored for tv and season because progress is tracked with episode rows.                                                     |
+
+---
+
+## Physical media location import (CLZ Movies export)
+
+Every media type has a **`location`** field for recording where a physical copy
+lives (a shelf or bookshelf code such as `A-031`). On the media detail page it
+is displayed as a **LOCATION** card on its own row directly below the score
+cards.
+
+You can populate locations in bulk from a **CLZ Movies** collection export. CLZ
+products can export a `movies.json` file, and each entry carries a `location`
+field (`A-376`, `B-117`, …).
+
+To import, put the export somewhere the container can read, then run the
+management command:
+
+```bash
+python manage.py import_locations /path/to/movies.json
+```
+
+Options:
+
+| Flag            | Description                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| (positional)    | Path to the `movies.json` export (defaults to `movies.json`).                                      |
+| `--user USER`   | Only update media tracked by that username.                                                        |
+| `--dry-run`     | Print what would change without writing anything (recommended first).                               |
+| `--skip-title`  | Match only by TMDB id; skip the normalized-title fallback.                                         |
+
+How matching works:
+
+1. **TMDB id** — the CLZ export's `links` contain `themoviedb.org/movie/<id>`
+   URLs, which align with the TMDB id Yamtrack stores for items from the `tmdb`
+   source. This is exact and preferred.
+2. **Normalized title** — items with no matching TMDB id are located by title,
+   ignoring articles, punctuation, case and using the export's `sorttitle` where
+   present (e.g. *The Mists of Avalon* matches *Mists Of Avalon, The*).
+
+Export entries flagged `is_tv_series` match **TV** rows; everything else
+matches **Movie** rows. When several physical copies of the same title exist
+(e.g. a title spread across multiple disks), their locations are joined into a
+single field (e.g. `A-131, A-132`).
+
+Always run `--dry-run` first to review the matches before writing.

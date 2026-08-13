@@ -865,6 +865,7 @@ class Media(models.Model):
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
+    location = models.TextField(blank=True, default="")
 
     class Meta:
         """Meta options for the model."""

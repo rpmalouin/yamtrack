@@ -41,6 +41,13 @@ mostly the same):
   (token encrypted at rest) after your first sync, so the Unwatched page and the
   Plex import prefill/reuse them — no re-entering every time. The page also shows
   the `sed` one-liner to pull `PlexOnlineToken` from Plex's `Preferences.xml`.
+- **Physical media location field.** A `location` field on every media type
+  records where a physical copy lives (e.g. a bookshelf code like `A-031`). The
+  detail page shows a **LOCATION** card on its own row directly below the score
+  cards. A management command imports locations from a **CLZ Movies** export
+  (`movies.json`), matching by TMDB id (falling back to normalized title), and
+  joining multiple physical copies of the same title into one field
+  (`python manage.py import_locations movies.json --dry-run`).
 - **Plex webhook clarity.** The Plex setup instructions now call out the easy-to-miss
   **Enable webhooks** checkbox, and a rejected username now logs at **warning** level
   (with the configured usernames) instead of only at debug.
