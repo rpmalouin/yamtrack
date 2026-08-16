@@ -446,6 +446,28 @@ def update_media_score(request, media_type, instance_id):
     )
 
 
+@require_POST
+def update_media_location(request, media_type, instance_id):
+    """Update the user's physical media location for a tracked item."""
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
+
+    location = request.POST.get("location", "").strip() or ""
+    media.location = location
+    media.save()
+    logger.info(
+        "%s location updated to %r",
+        media,
+        location,
+    )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "location": location,
+        },
+    )
+
+
 def unwatched(request):
     """Render the Unwatched review page with paginated Unwatched media."""
     kind = request.GET.get("kind", "all").lower()

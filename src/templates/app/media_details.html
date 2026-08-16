@@ -235,16 +235,32 @@
         </div>
 
         {# Location #}
-        {% if current_instance.location %}
-          <div class="flex flex-wrap gap-4 mt-4">
-            <div class="bg-[#2a2f35] p-3 rounded-lg w-30">
+        {% if current_instance %}
+          <form
+            hx-post="{% url 'update_media_location' media_type current_instance.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-swap="none"
+            class="flex flex-wrap items-end gap-4 mt-4">
+            <div class="bg-[#2a2f35] p-3 rounded-lg w-72">
               <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">LOCATION</h3>
-              <div class="flex items-center justify-center">
-                {% include "app/icons/map-pin.svg" with classes="w-4 h-4 mr-1.5 text-yellow-400" %}
-                <span class="text-sm font-bold text-white text-center">{{ current_instance.location }}</span>
+              <div class="flex items-center justify-center gap-2">
+                {% include "app/icons/map-pin.svg" with classes="w-5 h-5 text-yellow-400 shrink-0" %}
+                <input
+                  type="text"
+                  id="media-location-input"
+                  name="location"
+                  value="{{ current_instance.location|default:'' }}"
+                  placeholder="Add a location…"
+                  class="bg-[#3a4047] border border-gray-700 rounded px-2 py-1 text-sm text-white w-full min-w-36 focus:outline-none focus:border-indigo-500"
+                />
               </div>
             </div>
-          </div>
+            <button
+              type="submit"
+              class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer">
+              Save location
+            </button>
+          </form>
         {% endif %}
 
         {# Section filter links (desktop: pinned to bottom of top section) #}

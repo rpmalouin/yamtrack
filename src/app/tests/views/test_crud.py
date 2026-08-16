@@ -275,6 +275,116 @@ class EditMedia(TestCase):
         self.assertEqual(movie.score, 9)
 
 
+class EditMediaLocation(TestCase):
+    """Test editing the physical media location through views."""
+
+    def setUp(self):
+        """Create a user and log in."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
+        self.client.login(**self.credentials)
+
+    def test_update_media_location(self):
+        """Test updating the location of an owned movie."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.user,
+            progress=0,
+            status=Status.PLANNING.value,
+            location="A-131",
+        )
+
+        response = self.client.post(
+            reverse(
+                "update_media_location",
+                kwargs={
+                    "media_type": MediaTypes.MOVIE.value,
+                    "instance_id": movie.id,
+                },
+            ),
+            {"location": "B-204"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        movie.refresh_from_db()
+        self.assertEqual(movie.location, "B-204")
+
+    def test_clear_media_location(self):
+        """Test clearing the location with a blank submission."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.user,
+            progress=0,
+            status=Status.PLANNING.value,
+            location="A-131",
+        )
+
+        response = self.client.post(
+            reverse(
+                "update_media_location",
+                kwargs={
+                    "media_type": MediaTypes.MOVIE.value,
+                    "instance_id": movie.id,
+                },
+            ),
+            {"location": "   "},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        movie.refresh_from_db()
+        self.assertEqual(movie.location, "")
+
+    def test_cannot_update_another_users_media_location(self):
+        """Test users cannot update another user's location by instance ID."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.external_user,
+            progress=0,
+            status=Status.PLANNING.value,
+            location="A-131",
+        )
+
+        response = self.client.post(
+            reverse(
+                "update_media_location",
+                kwargs={
+                    "media_type": MediaTypes.MOVIE.value,
+                    "instance_id": movie.id,
+                },
+            ),
+            {"location": "B-204"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        movie.refresh_from_db()
+        self.assertEqual(movie.location, "A-131")
+
+
 class DeleteMedia(TestCase):
     """Test the deletion of media objects through views."""
 

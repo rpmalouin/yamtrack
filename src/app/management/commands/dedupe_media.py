@@ -43,6 +43,9 @@ TOP_LEVEL_MODELS = [
 
 MERGE_FIELDS = ["score", "notes", "start_date", "end_date", "progress"]
 
+# A group needs more than one row before it counts as needing deduplication.
+MIN_DUPLICATE_GROUP = 2
+
 
 def _keep_rank(media):
     return _STATUS_RANK.get(media.status, 0)
@@ -90,6 +93,7 @@ class Command(BaseCommand):
     help = "Deduplicate media rows so each (user, item) has a single row."
 
     def add_arguments(self, parser):
+        """Add command-line arguments."""
         parser.add_argument(
             "--dry-run",
             action="store_true",
@@ -101,7 +105,8 @@ class Command(BaseCommand):
             help="Only process this username.",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
+        """Deduplicate media rows per user and item."""
         dry_run = options["dry_run"]
         username = options.get("user")
 
@@ -118,8 +123,8 @@ class Command(BaseCommand):
             for row in rows:
                 groups[(row.user_id, row.item_id)].append(row)
 
-            for (user_id, item_id), group in groups.items():
-                if len(group) < 2:
+            for group in groups.values():
+                if len(group) < MIN_DUPLICATE_GROUP:
                     continue
 
                 keeper = _pick_keeper(group, model)
