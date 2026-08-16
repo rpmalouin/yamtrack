@@ -384,6 +384,18 @@ class MediaManager(models.Manager):
 
     def _sort_generic_media_list(self, queryset, sort_filter):
         """Apply generic sorting logic for all media types."""
+        # Sort by physical shelf location (A-131, B-124...). Ascending, with
+        # empty locations pushed to the end.
+        if sort_filter == "location":
+            return queryset.order_by(
+                models.Case(
+                    models.When(location="", then=models.Value(1)),
+                    default=models.Value(0),
+                ),
+                models.F("location").asc(),
+                models.functions.Lower("item__title"),
+            )
+
         # Handle sorting by date fields with special null handling
         if sort_filter in ("start_date", "end_date"):
             # For start_date, sort ascending (earliest first)

@@ -51,6 +51,14 @@ mostly the same):
   (falling back to normalized title), and joining multiple physical copies of
   the same title into one field (`python manage.py import_locations movies.json
   --dry-run`).
+- **List view location column & printing.** The media list *table* view now shows
+  **Location as its own column** right next to Title (the grid cards show it too),
+  and **Location is a sort option** (ascending shelf order like `A-031`, with
+  empty locations last). A **Print** button (table view only) renders the
+  **entire filtered list** — not just the pages currently loaded on screen — as a
+  clean black-on-white columnar report (`Title | Location | Score | Status |
+  Start Date | End Date`), so even multi-hundred-item collections print fully
+  in a single pass.
 - **Plex webhook clarity.** The Plex setup instructions now call out the easy-to-miss
   **Enable webhooks** checkbox, and a rejected username now logs at **warning** level
   (with the configured usernames) instead of only at debug.

@@ -103,6 +103,12 @@
     <a href="{{ item|media_url }}"
        class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
        title="{{ title }}">{{ title }}</a>
+    {% if media and media.location %}
+      <div class="flex items-center gap-1 text-xs text-slate-400 mt-1">
+        {% include "app/icons/map-pin.svg" with classes="w-3 h-3 shrink-0 text-yellow-400" %}
+        <span class="whitespace-nowrap">{{ media.location }}</span>
+      </div>
+    {% endif %}
   </div>
 
   {% if item.media_type == MediaTypes.EPISODE.value %}

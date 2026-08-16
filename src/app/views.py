@@ -165,6 +165,21 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+def _paginate_media_queryset(request, media_queryset, page):
+    """Paginate a media queryset.
+
+    In print mode (``?print=1``) return every matching row in a single page so
+    the printed report always contains the full list, regardless of how many
+    pages were buffered into the DOM on screen. Otherwise return the requested
+    32-item page.
+    """
+    items_per_page = 32
+    if request.GET.get("print") == "1":
+        full_count = media_queryset.count() or 1
+        return Paginator(media_queryset, full_count).get_page(1)
+    return Paginator(media_queryset, items_per_page).get_page(page)
+
+
 @login_not_required
 @require_GET
 def media_list(request, username, media_type):
@@ -232,10 +247,10 @@ def media_list(request, username, media_type):
         search=search_query,
     )
 
-    # Paginate results
-    items_per_page = 32
-    paginator = Paginator(media_queryset, items_per_page)
-    media_page = paginator.get_page(page)
+    # Paginate results. In print mode, render every matching row at once so the
+    # printed report always contains the full list regardless of how many pages
+    # were buffered into the DOM on screen.
+    media_page = _paginate_media_queryset(request, media_queryset, page)
 
     BasicMedia.objects.annotate_max_progress(
         media_page.object_list,

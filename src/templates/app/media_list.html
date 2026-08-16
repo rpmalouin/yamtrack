@@ -7,6 +7,63 @@
   {{ media_type|media_type_readable_plural }} - Yamtrack
 {% endblock title %}
 
+{% block extra_head %}
+  <style>
+    /* Print: hide the interactive/dark chrome, render a clean black-on-white list
+       whether the user is on the grid layout or the table layout. */
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      aside,
+      .sticky,
+      div[x-show],
+      #messages-list,
+      #persistent-messages-actions,
+      #list-toolbar,
+      #loading-indicator,
+      button,
+      .htmx-indicator { display: none !important; }
+
+      .media-grid { display: none !important; }
+      .flex.min-h-screen { display: block !important; background: #fff !important; }
+      .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      main { background: #fff !important; }
+      h1 { color: #000 !important; }
+
+      /* Force the table (which is always in the DOM) to show, even when it is
+         hidden on screen because the user has the grid layout selected. */
+      #media-list-table {
+        display: block !important;
+        background: #fff !important;
+        border: none !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+      #media-list-table table {
+        background: #fff !important;
+        width: 100% !important;
+        border-collapse: collapse;
+      }
+      #media-list-table th,
+      #media-list-table td {
+        background: #fff !important;
+        color: #000 !important;
+        border-bottom: 1px solid #ccc;
+        border-top: none;
+        padding: 4px 6px;
+        text-align: left;
+      }
+      #media-list-table th { font-weight: 700; }
+      #media-list-table a { color: #000 !important; text-decoration: none; }
+      #media-list-table th:first-child,
+      #media-list-table td:first-child,
+      #media-list-table img { display: none !important; }
+      tbody tr { break-inside: avoid; }
+    }
+  </style>
+{% endblock extra_head %}
+
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">
     {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
@@ -35,7 +92,7 @@
       <input type="hidden" name="layout" x-model="layout">
     </form>
 
-    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <div id="list-toolbar" class="flex flex-col md:flex-row gap-4 mb-6">
       <!-- Search -->
       <div class="relative grow">
         <input placeholder="Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
@@ -134,6 +191,21 @@
              title="Table View"
              @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
         </div>
+
+        <!-- Print (table view only; the printed report is a columnar table) -->
+        {% if current_layout == "table" %}
+        <button hx-get="{% url 'medialist' target_user.username media_type %}?print=1&layout=table"
+                hx-target="#media-list-table tbody"
+                hx-swap="innerHTML"
+                hx-include="#filter-form"
+                hx-disabled-elt="this"
+                hx-on::after-request="window.print()"
+                class="flex items-center gap-2 px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                title="Print full list"
+                type="button">
+          {% include "app/icons/printer.svg" with classes="w-4 h-4" %}
+        </button>
+        {% endif %}
       </div>
     </div>
 
@@ -156,15 +228,18 @@
           {% endif %}
         </div>
       </div>
-    {% elif current_layout == "grid" %}
-      <div class="media-grid">{% include "app/components/media_grid_items.html" %}</div>
     {% else %}
-      <div class="bg-[#2a2f35] p-4 rounded-lg overflow-hidden max-w-[calc(100svw-4rem)] overflow-x-scroll">
+      {% if current_layout == "grid" %}
+        <div class="media-grid">{% include "app/components/media_grid_items.html" %}</div>
+      {% endif %}
+      <div id="media-list-table"
+           class="bg-[#2a2f35] p-4 rounded-lg overflow-hidden max-w-[calc(100svw-4rem)] overflow-x-scroll {% if current_layout == 'grid' %}hidden{% endif %}">
         <table class="w-full bg-[#2a2f35]">
           <thead class="text-left text-gray-400 text-sm">
             <tr>
               <th class="p-2 w-15"></th>
               <th class="p-2 pe-8 w-2/5">Title</th>
+              <th class="p-2">Location</th>
               <th class="p-2 text-center">Score</th>
               {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
               {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}

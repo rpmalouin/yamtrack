@@ -41,6 +41,9 @@
         {% endif %}
       </div>
     </td>
+    <td class="p-2 text-slate-400 text-xs">
+      {% if media.location %}{{ media.location }}{% endif %}
+    </td>
     {% if media.score is not None %}
       <td class="p-2 text-center">
         <div class="flex items-center justify-center">
