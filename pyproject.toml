@@ -10,9 +10,9 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-  "aiohttp~=3.13.5",
+  "aiohttp>=3.13.5,<3.15.0",
   "apprise~=1.9.9",
-  "beautifulsoup4~=4.14.3",
+  "beautifulsoup4>=4.14.3,<4.16.0",
   "celery~=5.6.3",
   "croniter~=6.2.2",
   "defusedxml~=0.7.1",
@@ -25,32 +25,32 @@ dependencies = [
   "django-model-utils~=5.0.0",
   "django-redis~=6.0.0",
   "django-select2~=8.4.8",
-  "django-simple-history~=3.11.0",
+  "django-simple-history>=3.11,<3.14",
   "django-widget-tweaks~=1.5.1",
   "gunicorn~=25.3.0",
-  "icalendar~=7.0.3",
+  "icalendar>=7.0.3,<7.4.0",
   "pillow~=12.2.0",
   "psycopg[binary,pool]~=3.3.4",
   "python-decouple~=3.8",
   "redis[hiredis]~=7.4.0",
-  "requests~=2.33.1",
-  "requests-ratelimiter~=0.9.3",
+  "requests>=2.33.1,<2.35.0",
+  "requests-ratelimiter>=0.9.3,<0.11.0",
   "supervisor~=4.3.0",
   "unidecode~=1.4.0",
 ]
 
 [dependency-groups]
 lint = [
-  "django-upgrade~=1.30.0",
-  "djlint~=1.36.4",
-  "pre-commit~=4.5.1",
-  "ruff~=0.15.10",
+  "django-upgrade>=1.30,<1.34",
+  "djlint>=1.36.4,<1.47.0",
+  "pre-commit>=4.5.1,<4.8.0",
+  "ruff>=0.15.10,<0.18.0",
 ]
 test = [
-  "coverage~=7.13.5",
+  "coverage>=7.13.5,<7.17.0",
   "fakeredis[lua]~=2.35.1",
-  "pytest-django~=4.12.0",
-  "pytest-playwright~=0.7.2",
+  "pytest-django>=4.12,<4.15",
+  "pytest-playwright>=0.7.2,<0.11.0",
   "tblib~=3.2.2",
 ]
 dev = [
@@ -58,7 +58,7 @@ dev = [
   {include-group = "test"},
 ]
 docs = [
-  "zensical==0.0.42",
+  "zensical==0.0.71",
   "mike @ git+https://github.com/squidfunk/mike.git",
 ]
 
